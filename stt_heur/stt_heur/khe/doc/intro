@@ -1,0 +1,297 @@
+@Chapter
+    @PartNumber { Part A }
+    @PartTitle { The Platform }
+    @Title { Introduction }
+    @Tag { intro }
+@Begin
+Some instances of high school timetabling problems, taken from
+institutions in several countries and specified formally in a
+common XML format, have recently become available @Cite { $post2008 }.
+For the first time, the high school timetabling problem can be studied
+in its full generality.
+@PP
+KHE is an open-source ANSI C library, released under the GNU public
+licence, which aims to provide a fast and robust foundation for solving
+instances of high school timetabling problems expressed in the new
+format.  Users of KHE may read and write XML files, create solutions,
+and add and change time and resource assignments using any algorithms
+they wish.  The cost of the current solution is always available,
+kept up to date by a hand-coded constraint propagation network.
+KHE also offers features inherited from the author's KTS system
+@Cite { $kingston2006kts, $kingston2007kts_paper }, notably layer
+trees and matchings, and solvers for several major sub-tasks.
+@PP
+KHE is intended for production use, but it is also a research
+vehicle, so new versions will not be constrained by backward
+compatibility.  I will release a corrected version within a
+few days of receiving a bug report, wherever possible.  Please
+report bugs to me at @I { jeff@it.usyd.edu.au }.
+@PP
+This introductory chapter explains how to install and use KHE,
+surveys its data types, and describes some operations common
+to many types.
+@BeginSections
+
+@Section
+    @Title { Installation and use }
+    @Tag { intro.install }
+@Begin
+@LP
+KHE has a home page, at
+@ID @F @Verbatim { http://www.it.usyd.edu.au/~jeff/khe/ }
+The current version of KHE is a gzipped tar file in that directory.
+The current version of this documentation (a PDF file) is also
+stored there.  The names of these files change with each release;
+they are most easily downloaded using links on the home page.
+@PP
+The version number of a KHE release is its date of release, in the format
+@I { yyyy_mm_dd }.  For example, the first release was on 9 August 2010,
+so its version number is 2010_08_09.  Its files' names are
+@F { khe-2010_08_09.tar.gz } and @F { khe_guide-2010_08_09.pdf }.
+The version number also appears in a preprocessor definition in
+file @C { khe.h }, like this for example:
+@ID @C { #define KHE_VERSION "2010_08_09" }
+To install KHE, download a release and unpack it using @C { gunzip }
+and @C { tar xf } as usual.  The resulting directory, @C { khe },
+contains the source files of KHE, a makefile, and a @C { doc }
+subdirectory containing the source files of this documentation.
+Typing @C { make } in directory @C { khe } compiles KHE, producing
+a set of @C { .o } files and an executable called @C { khe } which
+may be used for testing.
+@PP
+Run @C { khe } with no command line arguments to get a usage message.
+It is capable of reading an XML archive, solving each of its
+instances, and writing out the archive with the solutions added
+as a new solution group.
+@PP
+More commonly, it is desired to use KHE within a larger program.  A
+simple way to incorporate KHE into a larger C program is as follows.
+Run @C { make } as before, then move directory @C { khe } to be
+subdirectory @F { khe } of the main source code directory of the
+larger C program.  Add
+@ID @C { #include "khe.h" }
+at the top of each source file of the larger program that requires
+access to KHE.  To ensure that the C compiler can find file
+@F { khe.h }, add @F "-I khe" to the command which invokes the
+C compiler.  Add @F "khe/*.o" to the list of files that are to
+be linked together to form the executable.  Remove executable
+@C { khe }, and also remove object file @C { khe_main.o }, since
+it contains an unwanted @C { main() }.
+@PP
+It is necessary to add @F { -lm } to the main linker command, to
+gain access to the mathematical functions, and also @F { -lexpat },
+because KHE relies on the well-known Expat library (probably already
+precompiled on your system, since Firefox uses it) for reading XML.
+Expat offers a choice of encodings for the characters it reads.
+However, this choice must be made at compile time, and since the
+precompiled version of Expat on the author's computer returns UTF-8
+characters, UTF-8 is used uniformly throughout KHE, represented by
+the C @C { char } type.  Users who want other encodings will have
+to convert to and from UTF-8.
+@PP
+KHE uses Posix threads to implement solving in parallel (function
+@C { KheParallelSolve } from Section {@NumberOf general_solvers.parallel}),
+so the compiler and linker commands need the @C { -pthread } flag.  If
+you don't have Posix threads, the makefile documents a workaround.
+The only difference will be that @C { KheParallelSolve } will do its
+solving sequentially rather than in parallel.
+@End @Section
+
+@Section
+    @Title { The data types of KHE }
+    @Tag { intro.data }
+@Begin
+@LP
+This section is an overview of KHE's data types.  The following
+chapters have the details.
+@PP
+Type @C { KHE_ARCHIVE } represents one archive, that is, a collection of
+instances plus a collection of solution groups.  Type @C { KHE_SOLN_GROUP }
+represents one solution group, that is, a set of solutions of the
+instances of the archive it lies in.  The word `solution' is abbreviated
+to `soln' wherever it appears in the KHE interface.  Use of these types
+is optional:  instances do not have to lie in archives, and solutions
+do not have to lie in solution groups.
+@PP
+Type @C { KHE_INSTANCE } represents one instance of the high school
+timetabling problem.  @C { KHE_TIME_GROUP } represents a set of times;
+@C { KHE_TIME } represents one time.  @C { KHE_RESOURCE_TYPE }
+represents a resource type (typically @I { Teacher }, @I { Room },
+@I { Class }, or @I { Student }); @C { KHE_RESOURCE_GROUP } represents
+a set of resources of one type; and @C { KHE_RESOURCE } represents
+one resource.
+@PP
+Type @C { KHE_EVENT_GROUP } represents a set of events; @C { KHE_EVENT }
+represents one event, including all information about its time.  Type
+@C { KHE_EVENT_RESOURCE } represents one resource element within an
+event.  Type @C { KHE_CONSTRAINT } represents one constraint.  This
+could have any of the constraint types of the XML format (it is their
+abstract supertype).
+@PP
+Type @C { KHE_SOLN } represents one solution, complete or partial,
+of a given instance, optionally lying within a solution group.  Type
+@C { KHE_MEET } represents one meet (KHE's commendably brief name
+for what the XML format calls a solution event, split event, or
+sub-event:  one event as it appears in a solution), including all
+information about its time.  Type @C { KHE_TASK } represents one
+piece of work for a resource to do:  one resource element within a meet.
+@PP
+KHE supports multi-threading by ensuring that each instance and its
+components (of type @C { KHE_INSTANCE }, @C { KHE_TIME_GROUP }, and
+so on) is immutable after loading of the instance is completed, and
+that operations applied to one solution object do not interfere with
+operations applied simultaneously to another.
+@FootNote {
+Assuming that KHE is linked to an implementation of @C { malloc() }
+suited to multiple threads, such as the Linux @C { glibc }
+implementation by Doug Lea and W.~Gloger.  KHE does not leak
+memory, although, since garbage collection is not standard in C,
+the user must indicate when major objects, such as instances
+and solutions, are no longer required.
+}
+Thus, after instance loading is completed, it is safe to create
+multiple threads with different @C { KHE_SOLN } objects in each
+thread, all referring to the same instance, and operate on those
+solutions in parallel.  No such guarantees are given for operating
+on the same solution from different threads.
+@End @Section
+
+@Section
+    @Title { Common operations  }
+    @Tag { intro.common }
+@Begin
+@LP
+This section describes some miscellaneous operations that are
+common to many data types.
+# @BeginSubSections
+# 
+# @SubSection
+#     @Title { Back pointers  }
+#     @Tag { backptrs }
+# @Begin
+# @LP
+@PP
+Use of KHE often involves creating objects that contain references
+to KHE entities (objects of types defined by KHE) alongside other
+information.  Sometimes it is necessary to go backwards, from
+a KHE entity to a user-defined object.  Accordingly, each KHE
+entity contains a @I { back pointer } which the user is free to
+set and retrieve, using calls which look generically like this:
+@ID @C {
+void KheEntitySetBack(KHE_ENTITY entity, void *back);
+void *KheEntityBack(KHE_ENTITY entity);
+}
+All back pointers are initialized to @C { NULL }.  In general, KHE
+itself does not set back pointers.  The exception is that some
+solvers packaged with KHE set the back pointers of the solution
+entities they deal with.  This is documented where it occurs.
+# In general,
+# solvers should assume that all back pointers are undefined when
+# they begin, and that they are free to use them.
+# @End @SubSection
+# 
+# @SubSection
+#     @Title { Similarity  }
+#     @Tag { similarity }
+# @Begin
+# @LP
+@PP
+Timetables often contain symmetries of various kinds.  In high
+school timetabling, the student group resources of one form are
+often symmmetrical:  they attend the same kinds of events over
+the course of the cycle.
+@PP
+Knowledge of similarity can be useful when solving.  For example,
+it might be useful to timetable similar events attended by student
+group resources of the same form at the same time.  Accordingly,
+several KHE entities offer an operation of the form
+@ID @C {
+bool KheEntitySimilar(KHE_ENTITY e1, KHE_ENTITY e2);
+}
+which returns @C { true } if KHE considers that the two entities
+are similar.  If they are the exact same entity, they are always
+considered similar.  In other cases, the definition of similarity
+varies with the kind of entity, although it follows a common pattern:
+evidence both in favour of similarity and against it is accumulated,
+and there needs to be a significant amount of evidence in favour,
+and more evidence in favour than against.  For example, an event
+containing no event resources will never be considered similar to
+any event except itself, since positive evidence, such as requests
+for the same kinds of teachers, is lacking.
+@PP
+Similarity is not a transitive relation in general.  In other words,
+if @C { e1 } and @C { e2 } are similar, and @C { e2 } and @C { e3 }
+are similar, that does not imply that @C { e1 } and @C { e3 } are
+similar.  There is a heuristic aspect to it that seems inevitable,
+although the intention is to stay on the safe side:  to declare
+two entities to be similar only when they clearly are similar.
+# @End @SubSection
+
+#@SubSection
+#    @Title { Priority }
+#    @Tag { priority }
+#@Begin
+#@LP
+#Many heuristics do the most difficult thing first:  they pack the
+#largest item first, colour the node of largest degree first, and
+#so on.  To assist with this, functions typified by
+#@ID @C {
+#int KheEntityPriority(KHE_ENTITY entity);
+#}
+#are required.  However, there are usually several ways to prioritize
+#entities, leading to a need to pass priority functions as parameters.
+#So KHE defines `prioritizer' types:
+#@ID @C {
+#typedef int (*KHE_ENTITY_PRIORITIZER)(KHE_ENTITY entity);
+#}
+#and its solvers take parameters of these types.  It is conventional
+#in KHE for larger values (rather than smaller ones) to indicate
+#higher priority, since this is usually what is wanted, as in the
+#bin packing and graph colouring examples.  It is not difficult to
+#encode other kinds of priorities as integers.  For example, to
+#give smaller values priority, simply negate the values returned.
+#Multi-level priorities may be encoded as linear combinations.
+#@End @SubSection
+
+# @SubSection
+#     @Title { Debug prints  }
+#     @Tag { debug }
+# @Begin
+@PP
+Another operation that applies to many entities, albeit a humble
+one, is printing the current state of the entity as an aid to
+debugging.  The KHE operations for this mostly take the form
+@ID @C {
+void KheEntityDebug(KHE_ENTITY entity, int verbosity,
+  int indent, FILE *fp);
+}
+They produce a debug print of @C { entity } onto @C { fp }.
+@PP
+The @C { verbosity } parameter controls how much detail is printed.
+Any value is acceptable.  A zero or negative value always prints
+nothing.  Every positive value prints something, and as the value
+increases, more detail is printed, depending, naturally, on the
+kind of entity.  Value 1 tries to print the minimum amount of
+information needed to identify the entity, often just its name.
+@PP
+If @C { indent } is non-negative, a multi-line format is used
+in which each line begins with at least @C { indent } spaces.
+If @C { indent } is negative, the print appears on one line with
+no indent and no concluding newline.  Since space is limited,
+verbosity may be reduced when @C { indent } is negative.
+@PP
+Many entities are organized hierarchically.  Depending on the
+verbosity, printing an entity may include printing its descendants.
+Their debug functions are passed a value for @C { indent } which
+is 2 larger than the value received (when non-negative), so that
+the hierarchy is represented in the debug output by indenting.
+The debug print of one entity usually begins with @F "[" and ends
+with a matching {@F "]"}, making it easy to move around the printed
+hierarchy using a text editor.
+# @End @SubSection
+# 
+# @EndSubSections
+@End @Section
+
+@EndSections
+@End @Chapter

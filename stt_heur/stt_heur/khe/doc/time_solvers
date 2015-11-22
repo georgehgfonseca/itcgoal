@@ -1,0 +1,1383 @@
+@Chapter
+    @Title { Time Solvers }
+    @Tag { time_solvers }
+@Begin
+@LP
+A @I { time solver } assigns times to meets, or changes their
+assignments.  This chapter presents a specification of time
+solvers, and describes the time solvers packaged with KHE.
+@BeginSections
+
+@Section
+    @Title { Specification }
+    @Tag { time_solvers.spec }
+@Begin
+@LP
+If time solvers share a specification, where possible, it is easy
+to replace one by another, pass one as a parameter to another,
+and so on.  This section recommends such a specification.
+@PP
+In hierarchical timetabling, `time assignment' means the assignment
+of the meets of child nodes to the meets of a
+parent node, so the recommended interface is
+@ID @C {
+typedef bool (*KHE_NODE_TIME_SOLVER)(KHE_NODE parent_node);
+}
+This typedef appears in @C { khe.h }.  The recommended meaning is that
+such a @I { node time solver } should be responsible for assigning or
+reassigning some or all of the meets of the proper descendants
+of @C { parent_node }:  it might assign the unassigned meets
+of the child nodes of @C { parent_node }, or reassign the
+meets of proper descendants of @C { parent_node }, and so on.  It
+returns @C { true } if every meet it takes responsibility
+for is assigned when it returns.  It is free to reorganize the tree
+below @C { parent_node }, provided that every descendant of
+@C { parent_node } remains a descendant.  It must not change anything
+in or above @C { parent_node }.
+@PP
+A second time solver type is defined in @C { khe.h }:
+@ID @C {
+typedef bool (*KHE_LAYER_TIME_SOLVER)(KHE_LAYER layer);
+}
+Instead of assigning or reassigning meets in the proper
+descendants of some parent node, a @I { layer time solver } assigns
+or reassigns meets in the nodes of @C { layer } and their
+descendants, like a node time solver for the parent node of @C { layer },
+but limited to @C { layer }.  The solver is free to reorganize the
+layer tree below the nodes of @C { layer } (but not to alter the nodes
+of @C { layer }), provided every descendant of each node of @C { layer }
+remains a descendant of that node.
+@PP
+If all time solvers follow these rules, then meets that
+do not lie in nodes will never be visited by them.  The recommended
+convention is that meets should not lie in nodes if and
+only if they already have assignments that should never be changed.
+@PP
+Time assignment solvers (and solvers generally) are free to use the
+back pointers of the solution entities they target.  However, since
+there is potential for conflict here when one solver calls another,
+the following conventions are recommended.
+@PP
+If solver @C { S } does not use back pointers (if it never sets
+any), then this should be documented, and solvers that call
+@C { S } may assume that back pointers will be unaffected by it.
+If @C { S } uses back pointers (if it sets at least one), then
+this should be documented, and solvers that call @C { S } must
+assume that back pointers in the solution objects targeted by
+@C { S } will not be preserved.  As a safety measure, solvers
+should set the back pointers that they have used to @C { NULL }
+before returning.
+# To assist with this, KHE offers functions
+# @ID @C {
+# bool KheNodeClearBack(KHE_NODE parent_node);
+# bool KheNodeSegmentClearBack(KHE_NODE parent_node, int i);
+# }
+# These set to @C { NULL } the back pointers in the child nodes of
+# @C { parent_node } (or in the child nodes of the @C { i }'th segment
+# of @C { parent_node }), and in the meets of those child nodes
+# (but not in tasks).  Both functions always return @C { true }.
+@End @Section
+
+@Section
+    @Title { Basic time solvers }
+    @Tag { time_solvers.basic }
+@Begin
+@LP
+This section presents some basic time solvers.  The simplest are
+@ID @C {
+bool KheNodeSimpleAssignTimes(KHE_NODE parent_node);
+bool KheLayerSimpleAssignTimes(KHE_LAYER layer);
+}
+They assign those meets of the child nodes of @C { parent_node } (or
+of the nodes of @C { layer }) that are not already assigned.  For
+each such meet, in decreasing duration order, they try all offsets in
+all meets of the parent node.  If @C { KheMeetAssignCheck } permits
+at least one of these, the best is made, measuring badness by calling
+@C { KheSolnCost }; otherwise the meet remains unassigned, and the result
+returned will be @C { false }.  These functions do not use back pointers.
+@PP
+There is one wrinkle.  When assigning a meet which is derived from
+an event @C { e }, these functions will not assign the meet to a
+meet which is already the target of an assignment of some other
+meet derived from @C { e }.  This is because if two meets from the
+same event are assigned to the same meet, they are locked into
+being adjacent, or almost adjacent, in time, undermining the
+only possible motive for splitting them apart.
+@PP
+These functions are not intended for serious timetabling.  They are
+useful for simple tasks:  assigning nodes whose children are known
+to be trivially assignable, finding minimum runaround durations
+(Section {@NumberOf layer_tree_solvers.runarounds.minduration}), and so on.
+@PP
+The logical order to assign times to the nodes of a layer tree is
+postorder (from the bottom up), since until a node's children are
+assigned to it, its resource demands are not clear.  Function
+@ID { 0.96 1.0 } @Scale @C {
+bool KheNodeRecursiveAssignTimes(KHE_NODE parent_node,
+  KHE_NODE_TIME_SOLVER solver);
+}
+applies @C { solver } to all the nodes in the subtree rooted at
+@C { parent_node }, in postorder.  It returns @C { true } when every
+call it makes on @C { solver } returns @C { true }.  It uses back
+pointers if and only if @C { solver } uses them.  For example,
+@ID @C {
+KheNodeRecursiveAssignTimes(parent_node, &KheNodeSimpleAssignTimes);
+}
+carries out a simple assignment at each node, and
+@ID @C {
+KheNodeRecursiveAssignTimes(parent_node, &KheNodeUnAssignTimes);
+}
+unassigns all meets in all proper descendants of @C { parent_node }.
+@PP
+Although they are not solvers, this seems a good place to mention
+@ID @C {
+bool KheNodeUnAssignTimes(KHE_NODE parent_node);
+bool KheLayerUnAssignTimes(KHE_LAYER layer);
+}
+which unassign any assigned meets of @C { parent_node }'s child
+nodes (or of @C { layer }'s nodes).  This always succeeds, so both
+functions return @C { true }.  They do not use back pointers.  Also,
+@ID @C {
+bool KheNodeAllChildMeetsAssigned(KHE_NODE parent_node);
+bool KheLayerAllChildMeetsAssigned(KHE_LAYER layer);
+}
+return @C { true } when the meets of the child nodes of
+@C { parent_node } (or of @C { layer }) are all assigned.
+@End @Section
+
+@Section
+    @Title { Preassigned meet assignment }
+    @Tag { time_solvers.preassigned }
+@Begin
+@LP
+Preassigned meets could be assigned separately first, then
+left out of nodes so that they are not visited by time assignment
+algorithms.  The problem with this is that a few times may be
+preassigned to obtain various effects, such as Mathematics first
+in the day, and this should not affect the way that forms are
+coordinated.  Accordingly, the author favours handling preassigned
+meets along with other meets, as far as possible.
+@PP
+However, when coordination is complete and real time assignment
+begins, it seems best to assign preassigned meets first,
+for two reasons.  First, preassignments are special because they
+have effectively infinite weight.  There is no point in searching
+for alternatives.  Second, preassignments cannot be handled by
+algorithms that are guided by total cost, because they have no
+assign time constraints, so there is no reduction in cost when
+they are assigned.  Functions
+@ID @C {
+bool KheNodePreassignedAssignTimes(KHE_NODE root_node);
+bool KheLayerPreassignedAssignTimes(KHE_LAYER layer);
+}
+search the child nodes of @C { root_node }, which must be the
+overall root node, or the nodes of @C { layer }, whose parent
+must be the overall root node, for unassigned meets
+which are either preassigned themselves, or else have preassigned
+meets assigned to them, directly or indirectly, as found
+by @C { KheMeetIsAssignedPreassigned }
+(Section {@NumberOf solutions.meets.domains}).  Each such
+meet has a current time domain consisting of a single time, and
+@C { KheMeetAssignTime } is called to attempt to assign that
+time to the meet.  The functions return @C { true } if
+all such attempts succeed.  They do not use back pointers.
+@End @Section
+
+@Section
+    @Title { A solver for runarounds }
+    @Tag { time_solvers.runaround }
+@Begin
+@LP
+Time solver
+@ID @C {
+bool KheRunaroundNodeAssignTimes(KHE_NODE parent_node);
+}
+assigns times to the unassigned meets of the child nodes of
+@C { parent_node }, using an algorithm specialized for runarounds.  It
+tries to spread similar nodes out through @C { parent_node } as much
+as possible.  By definition, some resources are scarce in runaround
+nodes, so it is good to spread demands for similar resources as widely
+as possible.  It works well on symmetrical runarounds, but it can fail
+in more complex cases.  If that happens, it undoes its work and makes
+a call to @C { KheNodeLayeredAssignTimes(parent_node, false) } from
+Section {@NumberOf time_solvers.layered}.  This is not a very
+appropriate alternative, but any assignment is better than none.
+@PP
+@C { KheRunaroundNodeAssignTimes } begins by finding the child
+layers of @C { parent_node } using @C { KheNodeChildLayersMake }
+(Section {@NumberOf layer_tree_solvers.layerings}), and placing
+similar nodes at corresponding indexes in the layers, using
+@C { KheLayerSimilar } (Section {@NumberOf extras.layers}).
+It then assigns the unassigned meets of these nodes.  Its first
+priority is to not increase the cost of the solution; its second
+is to avoid assigning two child meets to the same parent meet
+(this would prevent them from spreading out in time); and its
+third is to prevent corresponding meets in different layers
+from overlapping in time.
+@PP
+The algorithm is based on a procedure (let's call it @C { Solve })
+which accepts a set of child layers, each accompanied by a set of
+triples of the form
+@ID @C { (parent_meet, offset, duration) }
+meaning that @C { parent_meet } is open to assignment by a child
+meet of the layer, at the given offset and duration.  The task of
+@C { Solve } is to assign all the unassigned meets of the nodes
+of its layers.
+@PP
+The initial call to @C { Solve } is passed all the child layers.
+Each layer's triples usually contain one triple for each parent
+meet, with offset 0 and the duration of the parent meet for
+duration, indicating that the parent meets are completely open for
+assignment.  If any meets are assigned already, the triples are
+modified accordingly to record the smaller amount of open space.
+@PP
+@C { Solve } begins by finding the maximum duration, @C { md }, of
+an unassigned meet in any of its layers.  It assigns all meets with
+this duration in all layers itself, and then makes recursive calls to
+assign the meets of smaller duration.  For each layer, it takes the
+meets of duration @C { md } in the order they appear in the layer and
+its nodes.  It assigns these meets to consecutive suitable positions
+through the layer, shifting the starting point of the search for
+suitable positions by one place in the parent layer as it begins
+each layer.  It never makes an assignment which increases the cost
+of the solution, and it makes an assignment which causes two child
+meets to be assigned to the same parent meet only as a last resort.
+If some meet fails to assign, the whole algorithm fails and the
+problem is passed on to @C { KheNodeChildLayersAssignTimes } as
+described above.
+@PP
+As meets are assigned, the offsets and durations of the triples
+change to reflect the fact that the parent meets are more
+occupied.  After all assignments of meets of duration @C { md }
+are complete, the layers are sorted to bring layers with equal
+triples together.  Each set of layers with equal triples is then
+passed to a recursive call to @C { Solve }, which assigns its
+meets of smaller duration.
+@PP
+The purpose of handling sets of layers with equal triples together
+in this way can be seen in an example.  Suppose the parent node has
+two doubles and each child node has one double.  Then there are two
+ways to assign the child's double; half the child layers will get
+one of these ways, the other half will get the other way.  The
+layers in each half have identical assignments so far, undesirably
+but inevitably.  By bringing them together we maximize the chance
+that the recursive call which assigns the singles will find a way
+to vary the remaining assignments.
+@End @Section
+
+@Section
+    @Title { Kempe meet moves }
+    @Tag { time_solvers.kempe }
+@Begin
+@LP
+The @I { Kempe meet move } is a well-known generalization of
+moves and swaps.  It originates as a move of one meet, say from
+time @M { t sub 1 } to time @M { t sub 2 } (in reality, from
+one meet and offset to another meet and offset).  If this initial
+move creates clashes with other meets, then they are moved from
+@M { t sub 2 } to @M { t sub 1 }.  If that in turn creates
+clashes with other meets, then they are moved from @M { t sub 1 }
+to @M { t sub 2 }, and so on until all clashes are removed.  The
+result is usually a move or swap, but it can be more complex.
+@PP
+Curiously, the Kempe meet move is not unlike an ejection chain
+algorithm.  Instead of removing a single defect at each step,
+it removes an arbitrary number, but it tries only one repair:
+moving to @M { t sub 2 } on odd-numbered steps and to
+@M { t sub 1 } on even-numbered steps.
+@PP
+Suppose the original meet @M { m sub 1 } has duration @M { d sub 1 }.
+Usually, the Kempe meet move only moves meets of duration
+@M { d sub 1 }, and only from @M { t sub 1 } to @M { t sub 2 } (on
+odd-numbered steps) and from @M { t sub 2 } to @M { t sub 1 } (on
+even-numbered steps).  However, when @M { m sub 1 } is being moved
+to a different offset in the same target meet, the Kempe meet move
+does not commit itself to this until it has examined the first meet,
+call it @M { m sub 2 }, which has to be moved on the second step.
+If @M { m sub 2 } was immediately adjacent to @M { m sub 1 } in
+time before @M { m sub 1 } was moved on the first step, it is
+acceptable for @M { m sub 2 } to have a duration @M { d sub 2 }
+which is different from @M { d sub 1 }.  In that case, all meets
+moved on odd-numbered steps must have duration @M { d sub 1 },
+and all meets moved on even-numbered steps must have duration
+@M { d sub 2 }, and each meet is moved to the opposite end of the
+block of adjacent times that @M { m sub 1 } and @M { m sub 2 }
+were together assigned to originally.
+@PP
+Kempe meet moves need to know what clashes they have caused, and
+this is done via the matching, partly because it is the fastest
+way, and partly because it works at any level of the layer tree,
+unlike avoid clashes monitors, which work only at the root.
+Accordingly, preassigned demand monitors must be attached, and
+grouped separately from other monitors in group monitors which
+share a common parent.  The usual way to get a suitable grouping
+is to call
+@ID @C {
+KheGroupOrdinaryDemandMonitorsByMeet(soln, true, false,
+  KHE_SUBTAG_PREASSIGNED_DEMAND, "PreassignedDemandGroupMonitor");
+}
+(Section {@NumberOf grouping.helper.demand}) before making any
+Kempe meet moves.  If the only consideration was to support Kempe
+meet moves, the preassigned demand monitors could simply be grouped
+under one group monitor; but the grouping needs to be useful for
+time repair generally, hence the extra level.
+@PP
+Use of the matching raises the question of whether Kempe meet moves
+should try to remove demand defects other than @I { simple clashes },
+where a resource which possesses a hard avoid clashes constraint is
+preassigned to two meets which are running at the same time.  The
+author's view is that it should not.  When there is a simple clash
+caused by one meet moving to a time, the only possible resolution is
+for the other to move away.  With demand defects in general, there
+may be multi-way clashes which can be resolved by moving one of
+several meets away, which is not what the Kempe meet move does.
+# So in this work, Kempe meet moves are used to reassign times
+# in such a way that no new simple clashes are introduced, and the
+# more general kinds of demand defects are left to algorithms, such
+# as ejection chains, which support alternative repairs.
+@PP
+Assuming that the grouping is done correctly, then, a call to
+@ID @C {
+bool KheKempeMeetMove(KHE_MEET meet, KHE_MEET target_meet,
+  int target_offset, int *demand);
+}
+will make a Kempe meet move.  It is similar to @C { KheMeetMove } in
+moving the current assignment of @C { meet } to @C { target_meet } at
+@C { target_offset }, but it requires @C { meet } to be already assigned.
+It does not use back pointers or visit numbers.  It sets @C { *demand }
+to the total demand of the meets it moves, to give the caller some idea
+of the disruption it caused.  There is also
+@ID @C {
+bool KheKempeMeetMove(KHE_MEET meet, KHE_TIME t, int *demand);
+}
+which moves @C { meet } to the cycle meet and offset representing
+time @C { t }.
+@PP
+These functions ignore zones.  If zones must be conserved,
+@C { KheMeetMovePreservesZones } (Section {@NumberOf extras.zones})
+may be called first.  In theory this is inadequate when meets of
+different durations are moved, but the inadequacy will
+virtually never arise in practice.
+@PP
+@C { KheKempeMeetMove } succeeds, returning @C { true }, if it moves
+@C { meet } to @C { target_meet } at @C { target_offset }, possibly
+moving other meets as well, so that the final state has no new simple
+clashes or new cases of a preassigned resource attending a meet at a
+time when it is unavailable.  It fails, returning @C { false }, in
+these cases:
+@BulletList
+
+@LI {
+Some call to @C { KheMeetMove }, which is used to make the individual
+moves, returns @C { false }.  This includes the case where @C { meet }
+is already assigned to @C { target_meet } at @C { target_offset },
+which, as previously documented, is defined to fail for the practical
+reason that the move accomplishes nothing and pursuing it can only
+waste time.
+}
+
+@LI {
+Moving some meet makes some preassigned resource busy when it
+is unavailable.
+}
+
+@LI {
+A meet which needs to be moved is not currently assigned to the
+expected target meet (either @C { meet }'s original target meet
+or @C { target_meet }, depending on whether the current step is odd
+or even), or has the wrong duration or offset.  This prevents the
+changes from spreading beyond the expected area of the solution.
+}
+
+@LI {
+Some meet needs to be moved, but it has already moved during
+this operation, indicating that the classical graph colouring
+reason for failure has occurred.
+}
+
+@EndList
+If @C { KheKempeMeetMove } fails, it leaves the solution in the state
+it was in at the failure point.  In practice, it must be enclosed in
+@C { KheTransactionBegin } and @C { KheTransactionEnd }
+(Section {@NumberOf solutions.transactions}), so that
+@C { KheTransactionUndo } can be used to clean up the mess.  This
+could easily have been incorporated into @C { KheKempeMeetMove },
+producing a version that left the solution unchanged if it failed.
+However, the caller will probably want to enclose the operation in a
+transaction anyway, since it may need to be undone for other reasons,
+so cleanup is left to the caller.
+@PP
+The remainder of this section describes how @C { KheKempeMeetMove }
+is implemented.
+# Like everything else in this chapter, it uses
+# nothing from behind the scenes.
+@PP
+First, if @C { meet } contains no preassigned tasks, either within
+itself or within meets assigned to it, directly or indirectly, then
+@C { KheKempeMeetMove } simply calls @C { KheMeetMove } and returns
+its result.  Otherwise, it finds @C { gm }, the parent monitor of
+the parent monitor of a demand monitor of a preassigned task of
+@C { meet }, and initiates a trace of it.  It then carries out a
+sequence of steps.  As each step begins, there is a set of meets
+ready to move, and the step tries to move them.  At the start of
+the first step, the set contains just @C { meet }.  An empty set
+signals success.
+@PP
+On odd-numbered steps, @C { KheKempeMeetMove } expects to move
+meets of @C { meet }'s duration from @C { meet }'s initial target
+meet and offset to @C { target_meet } at @C { target_offset }.  As
+described above, it does not fix the corresponding values for
+even-numbered steps until it sees the first meet moving the other way.
+It returns @C { false } if any of the meets to be moved do not fit
+the expected pattern, or if @C { KheMeetMove } returns @C { false }.
+@PP
+At the end of each step, the trace of @C { gm } is used to find
+the child monitors of @C { gm } whose cost has increased since
+the operation began.  For each of these monitors which contains
+ordinary demand monitors, @C { KheMonitorFirstCompetitor } and
+@C { KheMonitorNextCompetitor }
+(Section {@NumberOf matchings.failure.competitor}) are applied to
+those demand monitors to find the demand monitors competing with
+them for supply.  These competing monitors can be of three kinds:
+@NumberedList
+
+@LI {
+A competing workload demand monitor is taken to signal that a
+preassigned resource has been moved to an unavailable time,
+so it causes the entire operation to fail.  Not all workload
+demand monitors represent unavailable times, but the inexactness
+is only slight.
+}
+
+@LI {
+A competing unpreassigned demand monitor does not signal a
+simple clash and is ignored.  At a higher level, this defect
+might cause failure, but, as explained above, the Kempe meet
+move itself only takes notice of simple clashes.
+}
+
+@LI {
+A competing preassigned demand monitor signals a simple clash.
+The appropriate enclosing meet of the monitor's task (the one
+on the chain of assignments leading out of the task's meet just
+before the expected target meet) is scheduled to be moved on
+the next step.  If there is no such meet, or it was moved on
+a previous step, then fail.
+}
+
+@EndList
+A task is taken to be preassigned when a call to @C { KheTaskIsPreassigned }
+(Section {@NumberOf solutions.tasks.domains}), with
+@C { as_in_event_resource } set to @C{ false }, returns @C { true }.
+#@PP
+#Occasionally there is a need to know which meets were moved by a Kempe
+#meet move operation.  At present no general mechanism for communicating
+#this information is available.  One special case has been implemented,
+#however:
+#@ID @C {
+#bool KheKempeMeetMove(KHE_MEET meet, KHE_MEET target_meet,
+#  int target_offset, int *demand);
+#bool KheKempeMeetMove(KHE_MEET meet, KHE_TIME t,
+#  int *demand);
+#}
+#These functions are exactly like @C { KheKempeMeetMove } and
+#@C { KheKempeMeetMove } except that they also set @C { *demand }
+#to the sum, over all meets that were moved, of the demand of the
+#node containing the meet, if any.  This is a good measure of how
+#disruptive the move is, and is used for that purpose by ejection
+#chain solvers.
+@End @Section
+
+@Section
+    @Title { Layered time assignment }
+    @Tag { time_solvers.layered }
+@Begin
+@LP
+As described at the start of this chapter, the basic operation in
+time assignment when layer trees are used is to assign the meets
+of the child nodes of a given parent node to the meets of the
+parent node.  A @I { layered time assignment } is one which groups
+the child nodes into layers and assigns them layer by layer.  This
+is a good way to assign them, since the nodes of each layer strongly
+constrain each other (they must be disjoint in time).  Solver
+@ID @C {
+bool KheNodeLayeredAssignTimes(KHE_NODE parent_node, bool regular);
+}
+does this.  If @C { regular } is @C { true }, it tries to make the
+assignments node-regular (Section {@NumberOf extras.zones}).  This
+will usually be appropriate for the cycle node or its vizier, but
+not for other nodes, since in practice they are runaround nodes,
+and irregularity is wanted in them rather than regularity.
+@PP
+Existing assignments of the meets of the child nodes of @C { parent_node }
+may be changed by this function.  If @C { parent_node } is the cycle node,
+@C { KheNodePreassignedAssignTimes } should be called first, to give
+priority to demands made by preassigned meets.
+@PP
+The rest of this section describes the implementation of
+@C { KheNodeLayeredAssignTimes }.
+@PP
+If @C { parent_node } has no layers, @C { KheNodeLayeredAssignTimes }
+first makes them, by calling @C { KheNodeChildLayersMake }
+(Section {@NumberOf layer_tree_solvers.layerings}).  It then orders
+the layers, assigns each in turn, and finishes with
+@C { KheNodeChildLayersDelete } if it called @C { KheNodeChildLayersMake }.
+@PP
+The layers are ordered using a form of the well-known
+@I { saturation degree } heuristic, which gives priority to
+entities with few choices for assignment.  The meets of a layer (or its
+nodes at least) share preassigned resources with hard avoid clashes
+constraints, so they form a clique in the clash graph.  The clique
+as a whole will have few choices for assignment when its duration is
+large, when many of its elements are already assigned (because they
+were preassigned, or because they lie in other layers as well which
+have already been assigned), and when it demands many resources.
+Accordingly, layers are sorted by decreasing lexicographical order
+of the triple
+@ID @C {
+(duration, assigned_duration, demand)
+}
+as returned by @C { KheLayerDuration }, @C { KheLayerAssignedDuration },
+and @C { KheLayerDemand }.
+@PP
+The layers are re-sorted after each is assigned, since the assigned
+durations of unassigned layers change when there are nodes lying
+in multiple layers.  A priority queue is not convenient here, but
+the resulting inefficiency hardly matters, since there are never
+very many layers.
+@PP
+Each layer is assigned by function @C { KheLayerMatchAssignTimes }
+from Section {@NumberOf time_solvers.layer_match} below.  After
+it returns, function @C { KheEjectionChainRepairTimes } from
+Section {@NumberOf time_solvers.repair.combined} is called to
+repair the assignments of all layers assigned so far, not only
+the layer just assigned.
+@PP
+The description so far applies irrespective of whether @C { regular }
+is @C { true } or @C { false }.  The remainder of this section describes
+the three extra things that are done when @C { regular } is @C { true }.
+@PP
+First, when a meet from another layer is already assigned (because it
+is preassigned, usually), it is good to make that same assignment to a
+meet of the same duration in the first layer, for regularity between
+the two meets.  Such an assignment to a meet of the first layer is
+called a @I { parallel assignment }.  If there is a node from another
+layer containing two or more assigned meets, then it is good to make
+the corresponding parallel assignments within one node of the first
+layer, for regularity between the nodes; and if two nodes from one layer
+contain assigned meets, it is good to make the corresponding parallel
+assignments to distinct nodes of the first layer.  The layer solver
+that makes these parallel assignments to the meets of the first layer
+is called only when @C { regular } is @C { true }, but it is also
+available separately:
+@ID @C {
+bool KheLayerParallelAssignTimes(KHE_LAYER layer);
+}
+It makes parallel assignments to @C { layer } heuristically,
+returning @C { true } if every assigned meet in every sibling layer
+of @C { layer } has a parallel assignment afterwards.
+@PP
+Second, @C { KheLayerMatchAssignTimes } takes a spread events
+constraint as an optional parameter.  When @C { regular } is
+@C { true }, @C { KheNodeLayeredAssignTimes } searches the
+instance for a spread events constraint with as many points
+of application as possible, and passes this constraint (if
+any) to @C { KheLayerMatchAssignTimes }.
+@PP
+Third, and most important, when @C { regular } is @C { true }, after the first
+layer has been assigned and repaired, @C { KheNodeLayeredAssignTimes } uses
+the first layer's assignments to define zones in the parent node, by calling
+@C { KheLayerInstallZonesInParent } (Section {@NumberOf extras.zones}).
+These zones encourage the following calls to @C { KheLayerMatchAssignTimes }
+and @C { KheEjectionChainRepairTimes } to find and preserve assignments which
+are regular with these zones.
+@End @Section
+
+@Section
+    @Title { Layer matching }
+    @Tag { time_solvers.layer_match }
+@Begin
+@LP
+@I { Layer matching } (a version of the @I { meta-matching } of
+previous work) is an aid to assigning the meets of a layer.  It
+supports the author's best method of assigning one layer:
+@ID @C {
+bool KheLayerMatchAssignTimes(KHE_LAYER layer,
+  KHE_SPREAD_EVENTS_CONSTRAINT sec);
+}
+This function assigns the meets of the child nodes of @C { layer }
+to the meets of the parent node of @C { layer } as usual, leaving
+any existing assignments unchanged, and returning @C { true } if
+every meet of @C { layer } is assigned afterwards.  If @C { layer }'s
+parent node has zones, it tries to make its assignments meet and
+node regular with those zones.
+@PP
+Parameter @C { sec } is optional (may be @C { NULL }); a simple
+choice for it would be any spread events constraint whose number of
+points of application is maximal.  If @C { sec } is present, the
+algorithm tries to assign the same number of meets to each of
+@C { sec }'s time groups.  To see why, consider an example of the
+opposite.  Suppose the events are to spread through the days, and
+the Wednesday times are divided into eight singles, while the Friday
+times are divided into four doubles.  It's likely that some events
+will end up meeting twice on Wednesdays and not at all on Fridays.
+#@PP
+#In practice, @C { KheLayerMatchAssignTimes } is used rather
+#differently depending on whether @C { layer }'s parent node is
+#the root node or not.  If it is, then a spread events constraint
+#is passed when assigning the first layer, and the resulting
+#assignments of that layer are used to define zones in the root
+#node.  Calls to @C { KheLayerMatchAssignTimes } on subsequent
+#layers are guided by those zones, so need no constraint.
+#@PP
+#If @C { layer }'s parent node is not the root node, then spread is
+#irrelevant.  The parent node is probably  a runaround node that
+#@C { KheRunaroundNodeAssignTimes }
+#(Section {@NumberOf time_solvers.runaround}), the specialized function
+#for runarounds, failed to timetable.  In that case, zones are irrelevant
+#too, because runarounds need to be irregular, not regular.
+@PP
+The implementation of @C { KheLayerMatchAssignTimes } is a simple
+combination of types and functions presented in the following sub-sections:
+@ID @C {
+bool KheLayerMatchAssignTimes(KHE_LAYER layer,
+  KHE_SPREAD_EVENTS_CONSTRAINT sec)
+{
+  KHE_LAYER_MATCH lm;  bool res;
+  lm = KheLayerMatchMake(layer, sec);
+  KheLayerMatchImproveNodeRegularity(lm);
+  res = KheLayerMatchAssignBestEdges(lm);
+  KheLayerMatchDelete(lm);
+  return res;
+}
+}
+It builds a layer match object, improves its node regularity, assigns
+the best edges, deletes the layer match object, and returns.
+@BeginSubSections
+
+@SubSection
+    @Title { Introduction }
+    @Tag { time_solvers.layer_match.intro }
+@Begin
+@LP
+Suppose that some layer has three meets of duration
+2 and two meets of duration 1, like this:
+@CD @Diag {
+@Box 0.6c @Wide {} |0.5c
+@Box 0.6c @Wide {} |0.5c
+@Box 0.6c @Wide {} |0.5c
+@Box 0.0c @Wide {} |0.5c
+@Box 0.0c @Wide {} 
+}
+These @I { child meets } have to be assigned to non-overlapping offsets
+in the meets of the parent node (the @I { parent meets }).  Suppose
+there are three parent meets of duration 2 and three of duration 1:
+@CD @Diag {
+@Box 0.6c @Wide {} |0.5c
+@Box 0.6c @Wide {} |0.5c
+@Box 0.6c @Wide {} |0.5c
+@Box 0.0c @Wide {} |0.5c
+@Box 0.0c @Wide {} |0.5c
+@Box 0.0c @Wide {} 
+}
+and suppose (for the moment) that assignments are only possible
+between meets of the same duration.  Then a bipartite
+graph can represent all the possibilities:
+@CD @Diag {
+PA:: @Box 0.6c @Wide {} |0.5c
+PB:: @Box 0.6c @Wide {} |0.5c
+PC:: @Box 0.6c @Wide {} |0.5c
+PD:: @Box 0.0c @Wide {} |0.5c
+PE:: @Box 0.0c @Wide {} |0.5c
+PF:: @Box 0.0c @Wide {} 
+@DP
+@DP
+CA:: @Box 0.6c @Wide {} |0.5c
+CB:: @Box 0.6c @Wide {} |0.5c
+CC:: @Box 0.6c @Wide {} |0.5c
+CD:: @Box 0.0c @Wide {} |0.5c
+CE:: @Box 0.0c @Wide {} 
+//
+@Line from { CA } to { PA }
+@Line from { CA } to { PB }
+@Line from { CA } to { PC }
+@Line from { CB } to { PA }
+@Line from { CB } to { PB }
+@Line from { CB } to { PC }
+@Line from { CC } to { PA }
+@Line from { CC } to { PB }
+@Line from { CC } to { PC }
+@Line from { CD } to { PD }
+@Line from { CD } to { PE }
+@Line from { CD } to { PF }
+@Line from { CE } to { PF }
+}
+The child meets (the bottom row) are the demand nodes, and the parent
+meets (the top row) are the supply nodes.  Each edge represents one
+potential assignment of one child meet.  Not all edges are present:
+some are missing because of unequal durations, others because of
+preassignments and other domain restrictions.  For example, the last
+child meet above appears to be preassigned.
+@PP
+When one of the potential assignments is made, there is a change in
+solution cost.  Each edge may be labelled by this change in cost.
+Suppose that a matching of maximum size (number of edges) is found
+whose cost (total cost of selected edges) is minimum.  There is a
+reasonably efficient algorithm for doing this.  This matching is
+the @I { layer matching }; it defines a legal assignment for some
+(usually all) child meets, and its cost is a lower bound on the
+change in solution cost when these meets are assigned to parent
+meets without any overlapping, as is required since the child meets
+share a layer and thus presumably share preassigned resources.
+@PP
+The lower bound is only exact if each assignment changes the
+solution cost independently of the others.  This is usually true
+for costs contributed by assign time monitors, prefer times
+monitors, and demand monitors, but not spread events monitors
+and some resource monitors.  This is one reason why the lower
+bound produced by the matching is not exact.
+@PP
+Parent meets usually have larger durations than child
+meets, allowing choices in packing the children into the
+parents.  The parent node typically represents the week, so it might
+have, say, 10 meets each of duration 4 (representing 5
+mornings and 5 afternoons), whereas the child meets typically
+represent individual lessons, so they might have durations 1 and 2.
+A @I segment of parent meet @C { target_meet } is a triple
+@ID @C {
+(target_meet, target_offset, durn)
+}
+such that it is legal to assign a child meet of duration @C { durn }
+to @C { target_meet } at @C { target_offset }.  A @I segmentation
+of the parent meets is a set of non-overlapping segments that covers
+all offsets of all parent meets.  It is the segments of a segmentation,
+not the parent meets themselves, that are used as supply nodes.  There
+may be many segmentations, but the layer matching uses only one, which
+it chooses heuristically.  This is the other reason why the lower
+bound is not exact.
+@PP
+A @I { layer matching graph } is a bipartite graph with one demand
+node for each meet of a given layer, and one supply node for each
+segment of some segmentation of the meets of the layer's parent
+node.  For each unassigned child meet @C { meet }, there is one
+edge to each parent segment whose duration equals the duration
+of @C { meet } and to which @C { meet } is assignable according
+to @C { KheMeetAssignCheck }.  The cost of the edge is the cost
+of the solution when the assignment is made, found by making the
+assignment, calling @C { KheSolnCost }, then unassigning again.
+(Using the solution cost rather than the change in cost ensures
+that edge costs are always non-negative, as required behind the
+scenes, without changing the layer matching.)  For each assigned
+child meet @C { meet }, a parent segment with @C { meet }'s
+target meet, target offset, and duration is the only possible
+supply node that the meet can be connected to; if present, the
+edge cost is 0.
+@PP
+A layer matching graph does not change automatically as the
+solution changes; after it is built, it is completely
+independent of the state of the solution.
+@PP
+The algorithm for constructing a layer matching finds a
+segmentation of the parent meets such that a maximum
+matching touches some (usually all) of the demand nodes.
+Once this is done, the number of edges in the maximum
+matching becomes an invariant:  all subsequent operations
+that would cause this number to decrease are rejected.
+@PP
+The layer giving rise to the demand nodes consists of nodes, each
+of which typically contains a set of meets for one course.  This
+set of meets will typically want to be spread through the cycle,
+not bunched together.  Each meet generates a demand node, and a
+set of demand nodes whose meets are related in this way is called
+a @I { demand node group }.
+@PP
+There is also a natural grouping of supply nodes, with each
+@I { supply node group } consisting of those supply nodes
+which originated from the same parent meet.  Thus, the
+the supply nodes of one group are adjacent in time.
+@PP
+It would therefore be good to enforce the following rule:  two
+demand nodes from the same demand node group may not match with
+two supply nodes from the same supply node group (because if they 
+did, all chance of spreading out the demand nodes in time would
+be lost).  There is no hope of guaranteeing this rule, partly
+because there are cases where it must be violated, and partly
+because guaranteeing it as well as everything else appears to be
+an NP-complete problem.  However, the layer matching algorithm
+encourages it by adding an artificial increment to the cost of
+each augmenting path that would violate it, thus making those
+paths relatively uncompetitive and unlikely to be applied.  The
+approach is purely heuristic, but it usually works well.
+@End @SubSection
+
+@SubSection
+    @Title { Basic operations }
+    @Tag { time_solvers.layer_match.basic }
+@Begin
+@LP
+A @I { layer match } is an object of type @C { KHE_LAYER_MATCH }
+representing a layer matching graph together with a layer matching
+for it.  To create a layer match for layer @C { layer }, call
+@ID @C {
+KHE_LAYER_MATCH KheLayerMatchMake(KHE_LAYER layer,
+  KHE_SPREAD_EVENTS_CONSTRAINT sec);
+}
+The algorithm implemented by this function includes finding a good
+segmentation of the parent meets, so is quite complex; it is the subject
+of Section {@NumberOf time_solvers.layer_match.construction} below.
+@PP
+The @C { sec } parameter of @C { KheLayerMatchMake } is optional (it
+may be @C { NULL }).  If present, it encourages @C { KheLayerMatchMake }
+to find a segmentation in which each time group of @C { sec } covers
+the same number of segments.  The @C { sec } parameter acts only with
+low priority.  It is mainly useful on the first layer, when there are
+no zones and the segmentation is more or less arbitrary.
+@PP
+The attributes of a layer match object may be retrieved by
+@ID { 0.98 1.0 } @Scale @C {
+KHE_LAYER KheLayerMatchLayer(KHE_LAYER_MATCH lm);
+KHE_SPREAD_EVENTS_CONSTRAINT KheLayerMatchConstraint(KHE_LAYER_MATCH lm);
+}
+Function
+@ID @C {
+void KheLayerMatchDelete(KHE_LAYER_MATCH lm);
+}
+removes @C { lm } when it is no longer needed.
+@PP
+The demand nodes of the layer matching graph may be found by
+@ID @C {
+int KheLayerMatchDemandNodeCount(KHE_LAYER_MATCH lm);
+KHE_MEET KheLayerMatchDemandNode(KHE_LAYER_MATCH lm, int i);
+}
+There will be one for each meet of @C { layer }, returned in the order
+they are inserted into the graph.  There is no way to visit the supply
+nodes or edges.  However, function
+@ID @C {
+bool KheLayerMatchBestEdge(KHE_LAYER_MATCH lm, KHE_MEET meet,
+  KHE_MEET *target_meet, int *target_offset, KHE_COST *cost);
+}
+returns @C { true } if @C { meet } has an edge incident to it in
+the layer matching, and sets the last three parameters to the
+attributes of that edge and its endpoint.  So code fragment
+@ID { 0.96 1.0 } @Scale @C {
+for( i = 0;  i < KheLayerMatchDemandNodeCount(lm);  i++ )
+{
+  meet = KheLayerMatchDemandNode(lm, i);
+  if( KheMeetAsst(meet) == NULL &&
+      KheLayerMatchBestEdge(lm, meet, &target_meet, &target_offset, &c) )
+    KheMeetAssign(meet, target_meet, target_offset);
+}
+}
+makes the assignments indicated by the matching.  This code is
+packaged into public function
+@ID @C {
+bool KheLayerMatchAssignBestEdges(KHE_LAYER_MATCH lm);
+}
+which also includes trivial code to return @C { true } when every
+demand node has an assignment by the time it returns.  Cases where
+this is not so are likely to be rare.  Function
+@ID @C {
+KHE_COST KheLayerMatchCost(KHE_LAYER_MATCH lm);
+}
+returns the total cost of the maximum matching.  This is a sum of
+solution costs, one per edge, so it is not very meaningful.  Function
+@ID @C {
+void KheLayerMatchDebug(KHE_LAYER_MATCH lm, int verbosity,
+  int indent, FILE *fp);
+}
+is offered as an aid to debugging.  It displays @C { lm } on
+@C { fp } in the usual way.  If @C { verbosity } is 1, only
+the cost is printed; verbosity 2 also prints the matching
+edges; higher verbosities print all edges.
+@End @SubSection
+
+@SubSection
+    @Title { Construction }
+    @Tag { time_solvers.layer_match.construction }
+@Begin
+@LP
+The algorithm implemented by function @C { KheLayerMatchMake }
+above works as follows.  Initially, the graph contains no
+demand nodes, and its segmentation consists of one segment
+for each parent meet, with offset 0 and duration equal to
+the duration of the parent meet.  Sort the child meets
+so that those already assigned come first, and otherwise by
+increasing domain size (in practice this will also sort by
+decreasing duration), breaking ties by decreasing demand.
+@PP
+For each child meet @C { meet } in turn, add @C { meet } as a
+demand node to the graph, with edges as determined by the rule
+given earlier.  If the number of edges in the maximum matching
+increases by one, proceed to the next child meet.  Otherwise,
+the child meet has failed to match, and this must be corrected
+(if possible) by splitting segments of larger duration into
+smaller segments that it can match with.  If the meet is
+assigned, only one split can satisfy it, so try that one.
+Otherwise, for each supply node whose duration is larger
+than the duration of @C { meet }, try splitting the segment in
+all possible ways into two or three smaller segments such that at
+least one of the fragments has the same duration as @C { meet }.
+If there was at least one successful split, redo the best of them.
+@PP
+The best split is determined by an evaluation with five components:
+@NumberedList
+
+@LI {
+The split must be @I { successful }:  it must increase the number
+of edges in the layer matching by one.  Only successful splits are
+candidates for being actually used; if there are none, the new
+demand node remains unmatched.
+}
+
+@LI {
+It is desirable to split a segment into two fragments rather than
+three.  For example, when splitting a double from a meet of duration
+4, it is better to take the first two times or the last two, rather than
+the middle two, since the latter leaves fewer choices for future splits.
+}
+
+@LI {
+If the parent node has zones, it is desirable to use a segment
+overlapping only one zone, to produce meet regularity
+(Section {@NumberOf extras.zones}) with the layer used to create the zones.
+}
+
+@LI {
+The split should produce a layer matching whose cost is
+as small as possible.
+}
+
+@LI {
+If there is a spread events constraint, the split should
+encourage the evenness that its presence requests.
+}
+
+@EndList
+These are combined lexicographically:  later criteria are only
+applied when all earlier ones are equal.  Meet regularity has
+higher priority than cost because cost can often be improved
+later, whereas meet regularity once lost is lost forever.
+@PP
+At the end, if any segments have duration larger than the duration
+of all child meets, split them into smaller segments, preferably
+segments regular with the zones, if any.  This adds more edges,
+and so may reduce the cost of the matching, at no risk to the
+size of the matching.  It is important when timetabling layers
+of small duration, such as layers containing staff meetings.
+@End @SubSection
+
+@SubSection
+    @Title { Improving node regularity }
+    @Tag { time_solvers.layer_match.node_regular }
+@Begin
+@LP
+When the parent node has zones, @C { KheLayerMatchMake } produces
+good meet regularity but does nothing to promote node regularity.
+This can be done by following it with a call to
+@ID @C {
+void KheLayerMatchImproveNodeRegularity(KHE_LAYER_MATCH lm);
+}
+This does nothing when there are no zones.  When there are, it removes
+edges from the matching graph to improve the node regularity of the
+edges with respect to the zones.  It consults the solution's diversifier,
+and the matching edges it removes vary with the diversifier.
+@PP
+The problem of removing edges from a layer matching to maximize node
+regularity with zones while keeping the matching cost low may seem
+obscure, but it is the key to effective time assignment in high
+school timetabling.  Bin packing is reducible to this problem, so
+it is NP-complete.  Even the small instances (up to ten nodes in each
+layer, say) that occur in practice seem hard to solve to optimality.
+The author tried a tree search which would have produced an optimal
+result, but could not make it efficient, even with several pruning
+rules.  So @C { KheLayerMatchImproveNodeRegularity } is heuristic.
+@PP
+Although many kinds of defects contribute to the edge costs that make
+up the matching cost, in practice the cost is dominated by demand cost
+(including the cost of avoid clashes and avoid unavailable times
+defects).  Every unit of demand cost incurred when assigning a time
+represents an unassignable resource at that time, implying that either
+the final solution will have a significant defect, or else that the
+time assignment will have to be changed later.
+@PP
+However, not all demand costs are equally important.  When the cost
+is incurred by a child node with no children, all of the meets of
+that node at that time will have to be moved later, which is very
+disruptive.  An assignment scarcely deserves to be called node-regular
+if that is going to happen.  But when the cost is incurred by a child
+node with children, after flattening it is often possible to remove
+the defect by moving just one meet, disrupting the node regularity
+only slightly.  So it is important to give priority to nodes with
+no children.
+@PP
+This is done in two ways.  First, the costs of edges leading out
+of meets whose nodes have no children is multiplied by 10.  Second,
+when evaluating alternatives, the matching cost is divided into
+two parts:  the total cost of edges leading out of meets in nodes
+with no children (the @I { without-children cost }) and the total
+cost of edges leading out of meets in nodes with children (the
+@I { with-children cost }), and without-children cost takes priority.
+@PP
+The heuristic sorts the child nodes by decreasing duration.  Nodes
+with equal duration are sorted by increasing number of children.
+Although it is important to minimize without-children cost, even at
+the expense of with-children cost, it would be wrong to maximize
+without-children node regularity at the expense of with-children
+node regularity.  Node regularity is generally harder to achieve
+for nodes of longer duration, so they are handled first.
+@PP
+For each child node in sorted order, the heuristic generates a
+sequence of sets of zones.  For each set of zones, it reduces
+the matching edges leading out of the meets of the child node so
+that they go only to segments whose times overlap with the times
+of the zones.  A best set of zones is chosen, the limitation of
+the child node's meets to those nodes is made permanent, and
+the heuristic proceeds to the next child node.
+@PP
+The best set is the first one with a lexicographically minimum
+value of the triple
+@ID @C {
+(without_children_cost, zones_cost, with_children_cost)
+}
+The @C { without_children_cost } and @C { with_children_cost }
+components are as defined above.  The @C { zones_cost }
+component measures the badness of the set of zones.  It is the
+number of zones in the set (we are trying to minimize this number,
+after all), adjusted to favour zones of smaller duration and zones
+already present in sets fixed on previously, to encourage the
+algorithm to use up zones completely wherever possible.
+@PP
+The algorithm for generating sets of zones generates all sets of
+cardinality 1, then all sets of cardinality 2, then one set
+containing every zone that the current best matching touches.  This
+last set is included to ensure that at least one set leading to a
+reasonable matching cost goes into the pot.  A few optimizations
+are implemented, including skipping sets of insufficient duration,
+and skipping zones known to be fully utilized already.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Regular time repair }
+    @Tag { time_solvers.repair }
+@Begin
+@LP
+Suppose we have a time assignment with good node regularity, but with
+some spread and demand defects.  Repairs that move meets arbitrarily
+might fix some defects, but the resulting loss of node regularity
+might have serious consequences later, during resource assignment.
+This section offers two ideas for repairing time assignments without
+sacrificing node regularity.
+@BeginSubSections
+
+#@SubSection
+#    @Title { Swapping meets that share zones }
+#    @Tag { time_solvers.repair.zones }
+#@Begin
+#@LP
+#The first idea for improving time assignments without loss of node
+#regularity is to take a layer whose parent node contains zones,
+#and swap the assignments of meets of that layer that have the same
+#duration and are assigned into the same zones.  Function
+#@ID @C {
+#void KheLayerZoneRepairTimes(KHE_LAYER layer);
+#}
+#applies this idea to the meets of @C { layer }.  It does nothing
+#if @C { layer }'s parent node does not have zones; otherwise it
+#repeatedly swaps meets as just described until none of the
+#available swaps improves the solution cost.
+#@PP
+#On a typical run this function found five improvements.  At
+#the time they were called, they reduced the soft solution cost
+#by a total of 20.
+#@End @SubSection
+
+@SubSection
+    @Title { Layer node matching }
+    @Tag { time_solvers.repair.matching }
+@Begin
+@LP
+One useful idea is to make repairs which are @I { node swaps }:
+swaps of the assignments of (the meets of) entire nodes.  The
+available swaps are quite limited, because the nodes concerned
+must lie in the same layers and have the same number of meets
+with the same durations.
+@PP
+For any parent node, take any set of child nodes lying in the same
+layers whose meets are all assigned.  Build a bipartite graph in
+which each of these child nodes is one demand node, and the set
+of assignments of its meets is one supply node.  An assignment is
+a triple of the form
+@ID @C {
+(target_meet, target_offset, durn)
+}
+as for layer matchings (Section {@NumberOf time_solvers.layer_match}),
+but here a supply node is a set of triples, not one triple.
+@PP
+For each case where a child node can be assigned to a set of
+triples, because the number of triples and their durations
+match the node's number of meets and durations, add an edge
+to the graph labelled by the change in solution cost when the
+corresponding set of assignments is made.  Find a maximum
+matching of minimum cost in this graph and reassign the child
+nodes in accordance with it.  The existing assignment is one
+maximum matching, so this will either reproduce the existing
+state or find something which, when applied, has a good chance
+of reducing the overall solution cost.  Function
+@ID @C {
+void KheLayerNodeMatchingNodeRepairTimes(KHE_NODE parent_node);
+}
+applies these ideas to the child nodes of @C { parent_node }.
+First, if @C { parent_node } has no child layers it calls
+@C { KheNodeChildLayersMake } to build them.  Then it
+partitions the child nodes so that the nodes of each partition
+lie in the same set of layers.  Then, for each partition in
+turn, it builds the weighted bipartite graph and carries out
+the corresponding reassignments.  If the solution cost does
+not decrease, the reassignments are undone.  It continues
+cycling around the partitions until @M { n } reassignments
+have occurred without a cost decrease, where @M { n } is the
+number of partitions.  Finally, if it made layers to begin
+with it removes them.
+@PP
+On a real instance, this function found no improvements at all
+after all layers were assigned.  On the same instance, applied
+after each layer after the first was assigned, it found exactly
+one improvement, which reduced the number of unassignable tixels
+by 1 or 2.  This improvement was carried through to the final
+solution:  the median number of unassigned tixels when solving
+16 instances was reduced from about 9 to about 7, and there
+were modest reductions in spread defects and split assignment
+defects as well.  The extra run time was about 0.6 seconds.
+@PP
+A related function is
+@ID @C {
+void KheLayerNodeMatchingLayerRepairTimes(KHE_LAYER layer);
+}
+It starts with the child nodes of @C { layer } rather than
+all the child nodes of its parent.
+@End @SubSection
+
+#@SubSection
+#    @Title { Node-based ejection chains }
+#    @Tag { time_solvers.repair.ejection }
+#@Begin
+#@LP
+#Another idea for improving time assignments without loss of node
+#regularity is to use node meet swapping as the sole repair operation
+#in an ejection chain algorithm.  Swapping the assignments of all the
+#meets of one node with all the meets of another node that lies in
+#the same layers, when all the meets have assignments, does not change
+#node regularity.
+#@PP
+#Unlike the previous algorithm, this one is free to wander from layer
+#to layer in pursuit of defects; but of course the optimality aspect
+#of the previous algorithm is lost.  Function
+#@ID @C {
+#bool KheNodeMeetSwapRepairTimes(KHE_NODE parent_node);
+#}
+#implements this idea.  It calls @C { KheNodeMeetSwap }
+#(Section {@NumberOf extras.nodes.swap}) to swap the assignments
+#of the meets of the child nodes of @C { parent_node }.  Full
+#details appear in Section {@NumberOf ejection.example.node}.
+## @PP
+## On a real instance, this function found several improvements, but not
+## when it was preceded by @C { KheLayerNodeMatchingNodeRepairTimes } above.
+## It was also much slower and produced a somewhat worse result.
+## Accordingly, it is not used at present.
+#@End @SubSection
+#
+#@SubSection
+#    @Title { Global time swaps }
+#    @Tag { time_solvers.repair.global }
+#@Begin
+#@LP
+#Yet another idea for improving time assignments without disrupting
+#node regularity is the @I { global time swap }.  After all times are
+#assigned, pick two times @M { t sub 1 } and @M { t sub 2 } and change
+#the time of every meet assigned @M { t sub 1 } to @M { t sub 2 } and
+#vice versa.  This may improve spread, and it may even improve demand,
+#if the swap moves a meet away from a time when a resource it needs is
+#unavailable.
+#@PP
+#As described, the method has problems when durations and domains
+#vary.  However, these can be overcome, as follows.
+#@PP
+#Build a new node which is essentially a copy of the cycle node:
+#for each cycle meet the new node has one meet with the same
+#duration, although the meet is given an automatic domain
+#(Section {@NumberOf solutions.meets.autodomains}) rather than a
+#singleton domain.  Make this new node a child of the cycle node,
+#and assign its meets to the corresponding cycle meets.  Then use
+#@C { KheNodeMove } to move every child node of the cycle node
+#except the new node to below the new node.  This will not preserve
+#the existing assignments in the meets of these child nodes, because
+#the new node is not an ancestor of the nodes being moved.  However,
+#these assignments are remembered separately, and corresponding
+#assignments to the meets of the new node are made after each node
+#is moved.  So far, the effect has been to insert a node between the
+#cycle node and its children which does not change the timetable.
+#@PP
+#Now identify the @I { full breaks } of the cycle.  These are the
+#points between times such that no meets span the point.  Meal
+#breaks and end of day are always full breaks, but there may well
+#be other full breaks, if the solution has good meet regularity.
+#Split the meets of the new node at these full breaks (in fact,
+#attempting a non-recursive split at every offset identifies them).
+## Then enlarge the domain of each meet of the new
+## node to its maximal value consistent with the domains of the
+## meets that are assigned to it:  the intersection of the domains
+## of those meets, appropriately shifted to take account of offsets.
+#@PP
+#It is now possible to swap the assignments of meets of equal
+#duration in the new node, except where domains forbid.  Keep
+#doing this in all possible ways until there is no improvement
+#in solution cost.  Then move all the children of the new node
+#back to the cycle node, where they were initially, and delete
+#the new node and its meets.  This time, the target of the node
+#moves is an ancestor of the nodes being moved, so the meets'
+#new assignments are preserved.
+#@PP
+#Function
+#@ID @C {
+#bool KheNodeGlobalSwapRepairTimes(KHE_NODE parent_node);
+#}
+#does all this, repairing the assignments of the meets in the child
+#nodes of @C { parent_node }.  It works at any node, not just the
+#cycle node, but it is probably only useful at the cycle node.
+#@PP
+#@C { KheNodeGlobalSwapRepairTimes } uses
+#@C { KheNodeGroupEventMonitors } to group all the event monitors
+#at and below @C { parent_node } under a single group monitor, and
+#rejects any swap which causes the total cost of that monitor to
+#increase.  This is because an increase will usually be due to
+#spread defects, and it is not desirable to throw away the
+#carefully constructed spread of the current solution for,
+#perhaps, only a tiny decrease in demand cost.
+#@PP
+#On one run on a real instance, this function found two swaps
+#that reduced spread cost from 53 to 40 at the time they were made,
+#but there was no clear reduction in final cost when two sets of
+#16 solutions were compared, probably because other repairs were
+#finding similar improvements.  Run time was actually reduced:
+#the time spent by @C { KheNodeGlobalSwapRepairTimes } was more
+#than offset by a reduction in time spent repairing later.
+#@End @SubSection
+
+@SubSection
+    @Title { Ejection chain repair }
+    @Tag { time_solvers.repair.combined }
+@Begin
+@LP
+Time solver
+@ID @C {
+bool KheEjectionChainRepairTimes(KHE_NODE parent_node);
+}
+uses ejection chains to improve the assignments of the meets of the
+child nodes of @C { parent_node } and their descendants.  The nodes
+need not be grouped into layers.  As befits a time assignment
+algorithm expected to run before resources are assigned, only event
+monitor and demand monitor defects are repaired.  Kempe meet moves
+(Section {@NumberOf time_solvers.kempe}) and node meet swaps are the
+operations used to alter the assignments.  As usual, @C { true } is returned
+if all meets are assigned a time on exit.  For a detailed description
+of the algorithm, consult Section {@NumberOf ejection.time_repair}.
+#@PP
+#@I { needs revision below here }
+#@PP
+#@C { KheEjectionChainRepairTimes } is effective at removing demand
+#and spread defects, the main problems with time assignments.  However,
+#it contains nothing which tends to preserve node regularity, and indeed
+#it will wreck a node-regular assignment.  An alternative algorithm,
+#@ID @C {
+#bool KheEjectionChainLongRepairTimes(KHE_NODE parent_node);
+#}
+#does the same job as @C { KheEjectionChainRepairTimes }, but it runs
+#an ejection chain of type @C { KHE_EJECTOR_MIN_DISRUPTION_THEN_COST },
+#which attempts to minimize the disruption by preferring chains that
+#alter the assignments of meets whose total demand is small.
+#@PP
+#Either way it is reasonable to precede the ejection chain
+#algorithm, which can be slow at times, by something simpler
+#and faster, such as
+#@ID @C {
+#bool KheSimpleRepairTimes(KHE_NODE parent_node);
+#}
+#This begins by building child layers for @C { parent_node } if they
+#are not already present.  It then swaps individual meets to remove
+#demand and spread defects.  For each defect it collects the set of
+#all meets for which a change of time assignment could repair the
+#defect (the competitor meets for a demand defect, and the meets of
+#the monitored event group for a spread defect), and tries to swap
+#each of these meets with another meet of the same duration lying
+#in the same layers.  It tries all such swaps and chooses the one
+#which reduces the solution cost the most (if any), breaking ties
+#by choosing one for which the sum of the demands of the nodes of
+#the two meets involved is minimal.  This encourages the algorithm
+#to choose swaps which are not very disruptive of node regularity.
+#It continues trying to swap until every defect has been tried
+#without success, then removes any layers it added and returns.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Putting it all together }
+    @Tag { time_solvers.all_together }
+@Begin
+@LP
+Time solver @C { KheCycleNodeAssignTimes } puts the ideas of this
+chapter together into one solver that assigns the meets in the
+proper descendants of @C { cycle_node }, assumed to be the cycle node:
+@ID @C {
+bool KheCycleNodeAssignTimes(KHE_NODE cycle_node)
+{
+  int i;  KHE_SOLN soln;  bool res;  KHE_TRANSACTION t;
+
+  /* coordinate layers and build runarounds */
+  KheCoordinateLayers(cycle_node, true);
+  KheBuildRunarounds(cycle_node, &KheNodeSimpleAssignTimes,
+    &KheRunaroundNodeAssignTimes);
+  for( i = 0;  i < KheNodeChildCount(cycle_node);  i++ )
+    KheNodeRecursiveAssignTimes(KheNodeChild(cycle_node, i),
+      &KheRunaroundNodeAssignTimes);
+
+  /* assign preassigned meets */
+  KheNodePreassignedAssignTimes(cycle_node);
+
+  /* tighten resource domains */
+  soln = KheNodeSoln(cycle_node);
+  t = KheTransactionMake(soln);
+  KheTransactionBegin(t);
+  for( i = 0;  i < KheSolnTaskingCount(soln);  i++ )
+    KheTaskingTightenToPartition(KheSolnTasking(soln, i));
+  KheTransactionEnd(t);
+
+  /* assign and repair times */
+  KheNodeLayeredAssignTimes(cycle_node, true, true);
+  KheEjectionChainRepairTimes(cycle_node);
+  KheNodeFlatten(vizier_node);
+  KheNodeDeleteZones(cycle_node);
+  res = KheEjectionChainRepairTimes(cycle_node);
+
+  /* undo resource domain tightening and return */
+  KheTransactionUndo(t);
+  KheTransactionDelete(t);
+  return res;
+}
+}
+It begins by coordinating layers, building and assigning runarounds,
+assigning preassigned meets, and tightening resource domains
+(Section {@NumberOf resource_solvers.task_tree.reorganization}).
+Then it assigns times layer by layer (including a repair step after
+each layer is assigned).  Next, it tries to repair the assignment
+twice, first with the regularity features (zones and interior nodes),
+without them.  Finally, it undoes the domain tightening it did earlier,
+and returns.
+@End @Section
+
+@EndSections
+@End @Chapter

@@ -1,0 +1,2372 @@
+@Chapter
+    @Title { Instances }
+    @Tag { instances }
+@Begin
+@LP
+This chapter describes the @C { KHE_INSTANCE } data type, representing
+instances as defined in the XML format.  An instance is a particular
+case of the high school timetabling problem, for a particular term
+or semester of a particular school.
+@BeginSections
+
+@Section
+    @Title { Instances }
+    @Tag { instances_instances }
+@Begin
+@LP
+To make a new, empty instance, call
+@ID @C {
+bool KheInstanceMakeBegin(KHE_ARCHIVE archive, char *id,
+  KHE_INSTANCE_METADATA md, KHE_INSTANCE *ins);
+}
+Parameter @C { archive } is optional; if non-@C { NULL }, the instance
+will be added to @C { archive }.  Parameters @C { id } and @C { md }
+are the Id and MetaData attributes from the XML file; both are optional,
+with @C { NULL } meaning absent.  If the operation is successful, then
+@C { true } is returned with @C { *ins } set to the new instance; if it
+is unsuccessful (which can only be because both @C { archive } and
+@C { id } are non-@C { NULL } and @C { id } is already the Id of an
+instance of @C { archive }), then @C { false } is returned with
+@C { *ins } set to @C { NULL }.
+@PP
+To set and retrieve the back pointer of @C { ins }, call
+@ID @C {
+void KheInstanceSetBack(KHE_INSTANCE ins, void *back);
+void *KheInstanceBack(KHE_INSTANCE ins);
+}
+as usual.  Functions
+@ID @C {
+KHE_ARCHIVE KheInstanceArchive(KHE_INSTANCE ins);
+char *KheInstanceId(KHE_INSTANCE ins);
+char *KheInstanceName(KHE_INSTANCE ins);
+KHE_INSTANCE_METADATA KheInstanceMetaData(KHE_INSTANCE ins);
+}
+may be called to retrieve the other attributes.  @C { KheInstanceName }
+is a convenience function that calls @C { KheInstanceMetaDataName } below.
+@PP
+After the instance has been completed, using functions still to be
+defined, call
+@ID {0.96 1.0} @Scale @C {
+void KheInstanceMakeEnd(KHE_INSTANCE ins, bool infer_resource_partitions);
+}
+This must be done, single-threaded, before any solution is created.
+It checks the instance and initializes various constant data structures
+used to speed the solution process.  Parameter
+# @C { infer_time_breaks }
+# is the subject of Section {@NumberOf times_infer}, and
+@C { infer_resource_partitions } is the subject of
+Section {@NumberOf resources_infer}.
+@PP
+Instance metadata may be created by calling
+@ID @C {
+KHE_INSTANCE_METADATA KheInstanceMetaDataMake(char *name,
+  char *contributor, char *date, char *country,
+  char *description, char *remarks);
+}
+where @C { remarks }, being optional, may be @C { NULL }.
+The attributes may be retrieved by calling
+@ID @C {
+char *KheInstanceMetaDataName(KHE_INSTANCE_METADATA md);
+char *KheInstanceMetaDataContributor(KHE_INSTANCE_METADATA md);
+char *KheInstanceMetaDataDate(KHE_INSTANCE_METADATA md);
+char *KheInstanceMetaDataCountry(KHE_INSTANCE_METADATA md);
+char *KheInstanceMetaDataDescription(KHE_INSTANCE_METADATA md);
+char *KheInstanceMetaDataRemarks(KHE_INSTANCE_METADATA md);
+}
+@C { KheInstanceMetaDataRemarks } may return @C { NULL }.
+@PP
+An instance may contain any number of time groups, times, resource
+types, event groups, events, and constraints.  These are added to
+their instance by the functions that create them, to be given later.
+To visit all the time groups of an instance, or retrieve a time
+group by @C { id }, call
+@ID @C {
+int KheInstanceTimeGroupCount(KHE_INSTANCE ins);
+KHE_TIME_GROUP KheInstanceTimeGroup(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveTimeGroup(KHE_INSTANCE ins, char *id,
+  KHE_TIME_GROUP *tg);
+}
+The first returns the number of time groups in @C { ins }.  The second
+returns the @C { i }'th time group, counting from 0 as usual in C.  The
+third searches for a time group of @C { ins } with the given @C { id };
+if found, it sets @C { *tg } to it and returns @C { true }, otherwise
+it leaves @C { *tg } unchanged and returns @C { false }.
+@PP
+Some time groups are created automatically by KHE, including
+one time group for each time, holding just that time; a time
+group holding the full set of times of the instance; and an
+empty time group.  These last two are returned by
+@ID @C {
+KHE_TIME_GROUP KheInstanceFullTimeGroup(KHE_INSTANCE ins);
+KHE_TIME_GROUP KheInstanceEmptyTimeGroup(KHE_INSTANCE ins);
+}
+#There is also an entire family of automatically created time
+#groups, indexed by duration:
+#@ID @C {
+#KHE_TIME_GROUP KheInstancePackingTimeGroup(KHE_INSTANCE ins,
+#  int duration);
+#}
+#For each value of @C { duration } between 1 and the number of times
+#of the cycle, this returns a @I packing time group containing all
+#the times that a meet of the given duration could begin
+#without straddling a break or going off the end.
+#@PP
+These automatically defined time groups are not visited by
+@C { KheInstanceTimeGroupCount } and @C { KheInstanceTimeGroup }.
+Even more time groups may be created during solving.  Those also
+do not appear in the list of time groups of the instance.
+@PP
+To visit all the times of an instance, or retrieve a time by Id, call
+@ID @C {
+int KheInstanceTimeCount(KHE_INSTANCE ins);
+KHE_TIME KheInstanceTime(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveTime(KHE_INSTANCE ins, char *id, KHE_TIME *t);
+}
+These work in the same way as the functions above for
+visiting and retrieving time groups.
+@PP
+To visit all the resource types of an instance, or retrieve a
+resource type by @C { id }, call
+@ID @C {
+int KheInstanceResourceTypeCount(KHE_INSTANCE ins);
+KHE_RESOURCE_TYPE KheInstanceResourceType(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveResourceType(KHE_INSTANCE ins, char *id,
+  KHE_RESOURCE_TYPE *rt);
+}
+These work in the same way as the corresponding functions for
+visiting and retrieving time groups and times.  Resource types
+have operations which give access to their resource groups and
+resources.  For convenience there are also operations
+@ID @C {
+bool KheInstanceRetrieveResourceGroup(KHE_INSTANCE ins, char *id,
+  KHE_RESOURCE_GROUP *rg);
+bool KheInstanceRetrieveResource(KHE_INSTANCE ins, char *id,
+  KHE_RESOURCE *r);
+}
+which search all the resource types of @C { ins } for a resource
+group or resource with the given @C { id }.  It is also possible to
+bypass resource types and visit all resources directly, by calling
+@ID @C {
+int KheInstanceResourceCount(KHE_INSTANCE ins);
+KHE_RESOURCE KheInstanceResource(KHE_INSTANCE ins, int i);
+}
+in the usual way.  The resources will be visited in the order
+they were created.
+@PP
+To visit all the event groups of an instance, or to retrieve
+an event group by @C { id }, call
+@ID @C {
+int KheInstanceEventGroupCount(KHE_INSTANCE ins);
+KHE_EVENT_GROUP KheInstanceEventGroup(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveEventGroup(KHE_INSTANCE ins, char *id,
+  KHE_EVENT_GROUP *eg);
+}
+These work in the usual way.
+@PP
+Some event groups are created automatically by KHE, including
+one event group for each event, holding just that event; an event
+group holding the full set of events of the instance; and an
+empty event group.  These last two are returned by
+@ID @C {
+KHE_EVENT_GROUP KheInstanceFullEventGroup(KHE_INSTANCE ins);
+KHE_EVENT_GROUP KheInstanceEmptyEventGroup(KHE_INSTANCE ins);
+}
+Automatically defined event groups are not visited by
+@C { KheInstanceEventGroupCount } and @C { KheInstanceEventGroup }.
+Even more event groups may be created during solving.  Those also
+do not appear in the list of event groups of the original instance.
+@PP
+To visit the events of an instance, or to retrieve an event by
+@C { id }, call
+@ID @C {
+int KheInstanceEventCount(KHE_INSTANCE ins);
+KHE_EVENT KheInstanceEvent(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveEvent(KHE_INSTANCE ins, char *id, KHE_EVENT *e);
+}
+To visit the event resources of an instance, call
+@ID @C {
+int KheInstanceEventResourceCount(KHE_INSTANCE ins);
+KHE_EVENT_RESOURCE KheInstanceEventResource(KHE_INSTANCE ins, int i);
+}
+The event resources may also be visited via their events.
+@PP
+To visit all the constraints of an instance, or to retrieve a
+constraint by @C { id }, call
+@ID @C {
+int KheInstanceConstraintCount(KHE_INSTANCE ins);
+KHE_CONSTRAINT KheInstanceConstraint(KHE_INSTANCE ins, int i);
+bool KheInstanceRetrieveConstraint(KHE_INSTANCE ins, char *id,
+  KHE_CONSTRAINT *c);
+}
+These operations work in the usual way.
+@End @Section
+
+@Section
+    @Title { Times  }
+    @Tag { times }
+@Begin
+@BeginSubSections
+
+@SubSection
+    @Title { Time groups }
+    @Tag { time_groups }
+@Begin
+@LP
+A time group, representing a set of times, is created and added to
+an instance by calling
+@ID @C {
+bool KheTimeGroupMake(KHE_INSTANCE ins, KHE_TIME_GROUP_KIND kind,
+  char *id, char *name, KHE_TIME_GROUP *tg);
+}
+This works like all creations of named objects do in KHE:  if @C { id }
+is non-@C { NULL } and @C { ins } already contains a time group with
+this @C { id }, it returns @C { false } and creates nothing; otherwise
+it creates a new time group, sets @C { *tg } to point to it, and returns
+@C { true }.  The time group kind is a value of type
+@ID @C {
+typedef enum {
+  KHE_TIME_GROUP_KIND_WEEK,
+  KHE_TIME_GROUP_KIND_DAY,
+  KHE_TIME_GROUP_KIND_ORDINARY
+} KHE_TIME_GROUP_KIND;
+}
+The XML format allows some time groups to be referred to as Weeks
+and Days, although they do not differ from other time groups in any
+other way.  The @C { kind } attribute records this distinction; it
+is only used when reading and writing XML files, not when solving.
+The @C { id } and @C { name } attributes are optional (may be 
+@C { NULL }); they are used only when writing XML, when they
+represent the compulsory Id and Name attributes of the time group.
+@PP
+To set and retrieve the back pointer of @C { tg }, call
+@ID @C {
+void KheTimeGroupSetBack(KHE_TIME_GROUP tg, void *back);
+void *KheTimeGroupBack(KHE_TIME_GROUP tg);
+}
+in the usual way.  The other attributes may be retrieved by calling
+@ID @C {
+KHE_INSTANCE KheTimeGroupInstance(KHE_TIME_GROUP tg);
+KHE_TIME_GROUP_KIND KheTimeGroupKind(KHE_TIME_GROUP tg);
+char *KheTimeGroupId(KHE_TIME_GROUP tg);
+char *KheTimeGroupName(KHE_TIME_GROUP tg);
+}
+Initially the time group is empty.  There are several operations
+for changing its set of times:
+@ID @C {
+void KheTimeGroupAddTime(KHE_TIME_GROUP tg, KHE_TIME t);
+void KheTimeGroupSubTime(KHE_TIME_GROUP tg, KHE_TIME t);
+void KheTimeGroupUnion(KHE_TIME_GROUP tg, KHE_TIME_GROUP tg2);
+void KheTimeGroupIntersect(KHE_TIME_GROUP tg, KHE_TIME_GROUP tg2);
+void KheTimeGroupDifference(KHE_TIME_GROUP tg, KHE_TIME_GROUP tg2);
+}
+These add a time to @C { tg }, remove a time, replace @C { tg }'s
+set of times with its union or intersecton with the set of times of
+@C { tg2 }, and with the difference of @C { tg }'s times and
+@C { tg2 }'s times.  The first two operations are treated as set
+operations, so @C { KheTimeGroupAddTime } does nothing if @C { t }
+is already present, and @C { KheTimeGroupSubTime } does nothing if
+@C { t } is not already present.
+@PP
+Changes to the time groups of an instance are not allowed after
+@C { KheInstanceMakeEnd } is called, since instances are immutable
+after that point.  However, solutions may construct time groups
+for their own use (Section {@NumberOf solutions.groups}).
+@PP
+There are also predefined time groups, for the complete set of
+times of the instance and for the empty set of times (see
+Section {@NumberOf instances_instances} for those), and one for each time
+of the instance, containing just that time (Section {@NumberOf times}).
+The times in predefined time groups may not be changed.
+@PP
+The times of any time group are visited by
+@ID @C {
+int KheTimeGroupTimeCount(KHE_TIME_GROUP tg);
+KHE_TIME KheTimeGroupTime(KHE_TIME_GROUP tg, int i);
+}
+These work in the same way as the visit functions for instances above.
+And
+@ID @C {
+bool TimeGroupContains(KHE_TIME_GROUP tg, KHE_TIME t);
+bool KheTimeGroupEqual(KHE_TIME_GROUP tg1, KHE_TIME_GROUP tg2);
+bool KheTimeGroupSubset(KHE_TIME_GROUP tg1, KHE_TIME_GROUP tg2);
+bool KheTimeGroupDisjoint(KHE_TIME_GROUP tg1, KHE_TIME_GROUP tg2);
+}
+return @C { true } if @C { tg } contains @C { t }, if @C { tg1 }
+and @C { tg2 } contain the same times, if the times of @C { tg1 }
+are a subset of the times of @C { tg2 }, and if the times of
+@C { tg1 } and @C { tg2 } are disjoint.  These tests use bit vectors,
+so are quite fast.  There is nothing to prevent two distinct time
+groups from containing the same times, so the C equality operator
+should never be applied to time groups.
+@PP
+Given a time group @C { tg }, function
+@ID @C {
+KHE_TIME_GROUP KheTimeGroupNeighbour(KHE_TIME_GROUP tg, int delta);
+}
+returns a time group containing the times of @C { tg } shifted by
+@C { delta } places, where @C { delta } may be any integer.  The
+time group will be empty if @C { delta } is such a large (positive
+or negative) number that all the times are shifted off the cycle.
+For example, @C { KheTimeGroupNeighbour(tg, 0) } is @C { tg },
+and @C { KheTimeGroupNeighbour(tg, -1) } contains the times that
+immediately precede those of @C { tg }.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheTimeGroupDebug(KHE_TIME_GROUP tg, int verbosity,
+  int indent, FILE *fp);
+}
+prints @C { tg } onto @C { fp } with the given verbosity
+and indent, as described for debug functions in general in
+Section {@NumberOf intro.common}.  Verbosity 1 prints the Id of the
+time group in some cases, and the first and last time (at most)
+enclosed in braces in others.
+@End @SubSection
+
+@SubSection
+    @Title { Times }
+    @Tag { times_times }
+@Begin
+@LP
+A time is created and added to an instance by calling
+@ID @C {
+bool KheTimeMake(KHE_INSTANCE ins, char *id, char *name,
+  bool break_after, KHE_TIME *t);
+}
+As usual, a @C { false } return value is only possible when @C { id }
+is non-@C { NULL } and already in use by another time object.  Parameters
+@C { id } and @C { name } may be @C { NULL }, and are used only when
+writing XML.
+@PP
+Parameter @C { break_after } says that a break occurs after this time,
+so that, for example, an event of duration 2 could not begin here.
+This is not an XML feature; when representing XML this parameter
+should always be @C { false }.  Within KHE itself it is used only
+by function @C { KheSolnSplitCycleMeet } and its associated
+operations (Section {@NumberOf solutions.meets.cycle}).
+@PP
+To set and retrieve the back pointer of a time, call functions
+@ID @C {
+void KheTimeSetBack(KHE_TIME t, void *back);
+void *KheTimeBack(KHE_TIME t);
+}
+as usual.  The other attributes are retrieved by
+@ID @C {
+KHE_INSTANCE KheTimeInstance(KHE_TIME t);
+char *KheTimeId(KHE_TIME t);
+char *KheTimeName(KHE_TIME t);
+bool KheTimeBreakAfter(KHE_TIME t);
+int KheTimeIndex(KHE_TIME t);
+}
+@C { KheTimeIndex } returns an automatically generated index
+number for @C { time }:  0 for the first time created, 1 for the
+second, and so on.  The times of an instance form a sequence, not
+a set, and must be created in chronological order.  This is unlike
+resources, events, etc., whose order of creation does not matter.
+The XML format requires times to appear in this same order.  Function
+@ID @C {
+bool KheTimeHasNeighbour(KHE_TIME t, int delta);
+}
+returns @C { true } when there is a time whose index is the index
+of @C { t } plus @C { delta }, where @C { delta } may be any
+integer, negative, zero, or positive.  Function
+@ID @C {
+KHE_TIME KheTimeNeighbour(KHE_TIME t, int delta);
+}
+returns this time when it exists, and aborts when it does not.
+#@PP
+#Occasionally, in advanced work, it is necessary to convert a time
+#into a cycle meet and offset in a solution (see
+#Section {@NumberOf solutions.meets.assignment} for cycle meets).
+#Functions
+#@ID @C {
+#int KheTimeCycleMeetIndex(KHE_TIME t);
+#int KheTimeCycleMeetOffset(KHE_TIME t);
+#}
+#return the index in any solution of the cycle meet
+#covering @C { t }, and the offset of @C { t } within that
+#meet.  For example, function @C { KheMeetAssignTime }
+#from Section {@NumberOf solutions.meets.assignment} is just
+#@ID @C {
+#bool KheMeetAssignTime(KHE_MEET meet, KHE_TIME time)
+#{
+#  KHE_MEET target_meet;
+#  target_meet = KheSolnMeet(meet->soln, KheTimeCycleMeetIndex(time));
+#  return KheMeetAssign(meet, target_meet, KheTimeCycleMeetOffset(time));
+#}
+#}
+#It uses these functions to convert a time assignment into a
+#general assignment.
+@PP
+For convenience, a time group is created for each time, holding
+just that time.  Function
+@ID @C {
+KHE_TIME_GROUP KheTimeSingletonTimeGroup(KHE_TIME t);
+}
+returns this time group.  It cannot be changed.
+@End @SubSection
+
+#@SubSection
+#    @Title { Inferring time breaks }
+#    @Tag { times_infer }
+#@Begin
+#@LP
+#Declaring that a break follows a time is not an XML feature.  However,
+#such declarations can be inferred.  Suppose that the instance contains
+#required link events constraints and prefer times constraints of
+#weight greater than 0 which together prohibit every meet of duration
+#2 from beginning at a certain time @C { t }, every meet of duration 3
+#from beginning at @C { t } or the time before @C { t }, and so on.
+#Although no reasons for these prohibitions are given, a break may
+#be assumed to follow @C { t }.  Function @C { KheInstanceMakeEnd }
+#(Section {@NumberOf instances_instances }) works all this out when
+#its @C { infer_time_breaks } parameter is @C { true }, and sets the
+#@C { break_after } attributes of the resulting times to @C { true }.
+## Breaks affect event domains (Section {@NumberOf event_domains})
+## and the cycle layer (Section {@NumberOf layers}), and hence affect solving.
+#@PP
+#A meet cannot be assigned a time that would cause it to span a time
+#break.  This is why time breaks are not inferred automatically:
+#because that would promote the constraints involved from required
+#to unbreakable.  KHE leaves such decisions to the user.
+#@PP
+#Inferring time breaks is not safe when reading an XML file containing
+#solutions as well as instances.   There is no guarantee that the
+#solutions' meets will obey the required constraints, and if even one
+#of them has an assigned time which causes it to span an inferred break,
+#KHE will abort with an error message when it reads that meet.
+#@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Resources }
+    @Tag { resources }
+@Begin
+@BeginSubSections
+
+@SubSection
+    @Title { Resource types }
+    @Tag { resource_types }
+@Begin
+@LP
+A resource type, representing one broad category of resources, such
+as the teachers or rooms, is created and added to an instance in the
+usual way by the call
+@ID @C {
+bool KheResourceTypeMake(KHE_INSTANCE ins, char *id, char *name,
+  bool has_partitions, KHE_RESOURCE_TYPE *rt);
+}
+Attributes @C { id } and @C { name } represent the optional XML Id and
+Name attributes as usual.  Its back pointer may be set and retrieved by
+@ID @C {
+void KheResourceTypeSetBack(KHE_RESOURCE_TYPE rt, void *back);
+void *KheResourceTypeBack(KHE_RESOURCE_TYPE rt);
+}
+as usual, and its other attributes may be retrieved by
+@ID @C {
+KHE_INSTANCE KheResourceTypeInstance(KHE_RESOURCE_TYPE rt);
+int KheResourceTypeIndex(KHE_RESOURCE_TYPE rt);
+char *KheResourceTypeId(KHE_RESOURCE_TYPE rt);
+char *KheResourceTypeName(KHE_RESOURCE_TYPE rt);
+bool KheResourceTypeHasPartitions(KHE_RESOURCE_TYPE rt);
+}
+@C { KheResourceTypeIndex(rt) } returns the index of @C { rt } in
+the enclosing instance, that is, the value of @C { i } for which
+@C { KheInstanceResourceType } returns @C { rt }.
+@PP
+Attribute @C { has_partitions } is not an XML feature, and should
+be given value @C { false } when reading an XML instance.  It
+indicates that there is a unique partitioning of the resources of
+this resource type, defined by a collection of specially marked
+resource groups called @I { partitions }.  For example, the
+resources of a student groups resource type might be partitioned
+into forms, or the resources of a teachers resource type might
+be partitioned into faculties.  When a resource type has
+partitions, each of its resources must lie in exactly one
+partition.
+@PP
+Each resource type contains an arbitrary number of resource groups,
+representing sets of resources of its type.  Resource groups are
+added to a resource type automatically by the functions that create
+them.  To visit all the resource groups of a given resource type, or
+to retrieve a resource group with a given @C { id } from a given
+resource type, call
+@ID @C {
+int KheResourceTypeResourceGroupCount(KHE_RESOURCE_TYPE rt);
+KHE_RESOURCE_GROUP KheResourceTypeResourceGroup(KHE_RESOURCE_TYPE rt,
+  int i);
+bool KheResourceTypeRetrieveResourceGroup(KHE_RESOURCE_TYPE rt,
+  char *id, KHE_RESOURCE_GROUP *rg);
+}
+These work in the usual way.  The partitions of a resource type
+may be visited by
+@ID { 0.96 1.0 } @Scale @C {
+int KheResourceTypePartitionCount(KHE_RESOURCE_TYPE rt);
+KHE_RESOURCE_GROUP KheResourceTypePartition(KHE_RESOURCE_TYPE rt, int i);
+}
+@C { KheResourceTypePartitionCount } returns 0 when @C { rt } does not
+have partitions.
+@PP
+Some resource groups are made automatically by KHE, including
+one resource group for each resource, holding just that resource; a
+resource group holding the full set of resources of the resource type;
+and an empty resource group.  These last two are returned by
+@ID { 0.96 1.0 } @Scale @C {
+KHE_RESOURCE_GROUP KheResourceTypeFullResourceGroup(KHE_RESOURCE_TYPE rt);
+KHE_RESOURCE_GROUP KheResourceTypeEmptyResourceGroup(KHE_RESOURCE_TYPE rt);
+}
+Automatically made resource groups are not visited by
+@C { KheResourceTypeResourceGroupCount } and
+@C { KheResourceTypeResourceGroup }.  Even more resource groups may
+be created during solving, but those do not appear in the list of
+resource groups of the original instance.
+@PP
+To visit all the resources of a given resource type, or to retrieve
+a resource of a given resource type by @C { id }, call
+@ID @C {
+int KheResourceTypeResourceCount(KHE_RESOURCE_TYPE rt);
+KHE_RESOURCE KheResourceTypeResource(KHE_RESOURCE_TYPE rt, int i);
+bool KheResourceTypeRetrieveResource(KHE_RESOURCE_TYPE rt,
+  char *id, KHE_RESOURCE *r);
+}
+in the usual way.
+@PP
+Two functions, which should be called only after the instance is
+complete, are offered for summarising how complex the task of
+assigning resources of a given type is.  The first is
+@ID @C {
+bool KheResourceTypeDemandIsAllPreassigned(KHE_RESOURCE_TYPE rt);
+}
+It returns @C { true } if every event resource of type @C { rt }
+is preassigned.  In practice this is always true for student group
+resource types, and often for teachers, but rarely for rooms.
+The second is
+@ID @C {
+int KheResourceTypeAvoidSplitAssignmentsCount(KHE_RESOURCE_TYPE rt);
+}
+It returns the number of points of application of avoid split
+assignments constraints that constrain event resources of this
+type.  The larger this number is, the more difficult the resource
+assignment problem for resources of this type is likely to be.
+@End @SubSection
+
+@SubSection
+    @Title { Resource groups }
+    @Tag { resource_groups }
+@Begin
+@LP
+A resource group is created and added to a resource type by the call
+@ID @C {
+bool KheResourceGroupMake(KHE_RESOURCE_TYPE rt, char *id, char *name,
+  bool is_partition, KHE_RESOURCE_GROUP *rg)
+}
+This function returns @C { false } only when @C { id } is non-@C { NULL }
+and some other resource group of type @C { rt } has this @C { id }.  The
+resource group lies in resource type @C { rt } with the usual
+@C { id } and @C { name } attributes.  Attribute @C { is_partition }
+is not an XML feature, and should be given value @C { false } when
+reading an XML instance.  It may be @C { true } only if attribute
+@C { has_partitions } of the resource group's resource type is
+@C { true }, in which case it indicates that this resource group
+is a partition, that is, one of those resource groups which define
+the unique partitioning of the resources of that type.
+@PP
+To set and retrieve the back pointer of a resource group, call
+@ID @C {
+void KheResourceGroupSetBack(KHE_RESOURCE_GROUP rg, void *back);
+void *KheResourceGroupBack(KHE_RESOURCE_GROUP rg);
+}
+as usual.  The other attributes may be retrieved by calling
+@ID @C {
+KHE_RESOURCE_TYPE KheResourceGroupResourceType(KHE_RESOURCE_GROUP rg);
+KHE_INSTANCE KheResourceGroupInstance(KHE_RESOURCE_GROUP rg);
+char *KheResourceGroupId(KHE_RESOURCE_GROUP rg);
+char *KheResourceGroupName(KHE_RESOURCE_GROUP rg);
+bool KheResourceGroupIsPartition(KHE_RESOURCE_GROUP rg);
+}
+@C { KheResourceGroupInstance } returns the resource group's
+resource type's instance.
+@PP
+Initially the resource group is empty.  Several operations change
+its resources:
+@ID @C {
+void KheResourceGroupAddResource(KHE_RESOURCE_GROUP rg, KHE_RESOURCE r);
+void KheResourceGroupSubResource(KHE_RESOURCE_GROUP rg, KHE_RESOURCE r);
+void KheResourceGroupUnion(KHE_RESOURCE_GROUP rg,
+  KHE_RESOURCE_GROUP rg2);
+void KheResourceGroupIntersect(KHE_RESOURCE_GROUP rg,
+  KHE_RESOURCE_GROUP rg2);
+void KheResourceGroupDifference(KHE_RESOURCE_GROUP rg,
+  KHE_RESOURCE_GROUP rg2);
+}
+These add @C { r } to @C { rg }, remove @C { r }, replace @C { rg }'s
+set of resources with its union or intersecton with the set of resources
+of @C { rg2 }, and with the difference of @C { rg }'s resources and
+@C { rg2 }'s resources.  All the resources and resource groups involved
+must be of the same type.  The first two operations are treated as
+set operations, so @C { KheResourceGroupAddResource } does nothing if
+@C { r } is already present, and @C { KheResourceGroupSubResource }
+does nothing if @C { r } is not already present.
+@PP
+These functions may not be used to alter resource groups which define
+partitions.  When a resource type has partitions, each of its resources
+is added to its partition when it is created.
+@PP
+Changes to the resource groups of an instance are not allowed after
+@C { KheInstanceMakeEnd } is called, since instances are immutable
+after that point.  However, solutions may construct resource groups
+for their own use (Section {@NumberOf solutions.groups}).
+@PP
+There are also predefined resource groups, for the complete set of
+resources of each resource type and the empty set of resources of
+each type (see Section {@NumberOf resource_types} for those), and
+one for each resource of the instance, containing just that resource
+(Section {@NumberOf resources}).  The resources in predefined resource
+groups may not be changed.
+@PP
+The resources of any resource group are visited by
+@ID @C {
+int KheResourceGroupResourceCount(KHE_RESOURCE_GROUP rg);
+KHE_RESOURCE KheResourceGroupResource(KHE_RESOURCE_GROUP rg, int i);
+}
+These work in the usual way.  And
+@ID @C {
+bool KheResourceGroupContains(KHE_RESOURCE_GROUP rg, KHE_RESOURCE r);
+bool KheResourceGroupEqual(KHE_RESOURCE_GROUP rg1,
+  KHE_RESOURCE_GROUP rg2);
+bool KheResourceGroupSubset(KHE_RESOURCE_GROUP rg1,
+  KHE_RESOURCE_GROUP rg2);
+bool KheResourceGroupDisjoint(KHE_RESOURCE_GROUP rg1,
+  KHE_RESOURCE_GROUP rg2);
+}
+return @C { true } if @C { rg } contains @C { r }, if @C { rg1 }
+and @C { rg2 } contain the same resources, if the resources of
+@C { rg1 } form a subset of the resources of @C { rg2 }, and if
+the resources of @C { rg1 } and @C { rg2 } are disjoint.  These tests
+use bit vectors, so are quite fast.  Two distinct resource groups
+may contain the same resources, so it is best not to apply the C
+equality operator to resource groups.
+@PP
+After a resource group is finalized, function
+@ID @C {
+KHE_RESOURCE_GROUP KheResourceGroupPartition(KHE_RESOURCE_GROUP rg);
+}
+may be called.  If @C { rg } is non-empty and its resources
+share a partition, the result is that partition, otherwise the
+result is @C { NULL }.  Since @C { KheResourceGroupPartition } is
+called when monitoring evenness, for efficiency the result is
+precomputed and stored in @C { rg } when it is finalized.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheResourceGroupDebug(KHE_RESOURCE_GROUP rg, int verbosity,
+  int indent, FILE *fp);
+}
+prints @C { rg } onto @C { fp } with the given verbosity and
+indent, as described for debug functions in general in
+Section {@NumberOf intro.common}.  Verbosity 1 prints the Id of the
+resource group in some cases, and the first and last resource
+(at most) enclosed in braces in others.
+@End @SubSection
+
+@SubSection
+    @Title { Resources }
+    @Tag { resources_resources }
+@Begin
+@LP
+A resource is created and added to its resource type by the call
+@ID @C {
+bool KheResourceMake(KHE_RESOURCE_TYPE rt, char *id, char *name,
+  KHE_RESOURCE_GROUP partition, KHE_RESOURCE *r);
+}
+A resource type is compulsory; @C { id } and @C { name } are the
+usual optional XML Id and Name.
+@PP
+Unlike @C { KheResourceGroupMake }, which returns @C { false } when its
+@C { id } parameter is non-@C { NULL } and some other resource group of
+the same resource type already has that Id, @C { KheResourceMake }
+returns @C { false } and sets @C { *r } to @C { NULL } when its
+@C { id } parameter is non-@C { NULL } and some other resource
+@I { of any resource type } already has its Id.  This is because
+predefined event resources are permitted to identify a resource
+by its Id alone, and so resource Ids must be unique among all the
+resources of the instance, not merely among resources of a given type.
+@PP
+The @C { partition } attribute is not an XML feature, and should be given
+value @C { NULL } when reading an XML instance.  It must be non-@C { NULL }
+if and only if @C { rt }'s @C { has_partitions } attribute is
+@C { true }, in which case its value must be a resource group of type
+@C { rt } whose @C { is_partition } attribute is @C { true }, and
+it indicates that the new resource lies in the specified partition.
+The new resource will be added to the partition by this function,
+and no separate call to @C { ResourceGroupAddResource } to do this
+is necessary or even permitted.
+@PP
+To set and retrieve the back pointer of a resource, call
+@ID @C {
+void KheResourceSetBack(KHE_RESOURCE r, void *back);
+void *KheResourceBack(KHE_RESOURCE r);
+}
+as usual.  The other attributes may be retrieved by the calls
+@ID @C {
+KHE_RESOURCE_TYPE KheResourceResourceType(KHE_RESOURCE r);
+KHE_INSTANCE KheResourceInstance(KHE_RESOURCE r);
+char *KheResourceId(KHE_RESOURCE r);
+char *KheResourceName(KHE_RESOURCE r);
+KHE_RESOURCE_GROUP KheResourcePartition(KHE_RESOURCE r);
+int KheResourceIndexInInstance(KHE_RESOURCE r);
+int KheResourceIndexInResourceType(KHE_RESOURCE r);
+}
+@C { KheResourceInstance } returns the enclosing instance.
+@C { KheResourceIndexInInstance } returns @C { r }'s index
+in the instance (the value of @C { i } for which
+@C { KheInstanceResource(ins, i) } returns @C { r }).
+@C { KheResourceIndexInResourceType } returns @C { r }'s index
+in its resource type (the value of @C { i } for which
+@C { KheResourceTypeResource(rt, i) } returns @C { r }).  Unlike
+the index numbers of times, which indicate chronological order, the
+index numbers of resources have no significance to the specification
+of the instance.  They are made available only for convenience.
+@PP
+A resource group is created automatically for each resource @C { r },
+holding just @C { r }.  Function
+@ID @C {
+KHE_RESOURCE_GROUP KheResourceSingletonResourceGroup(KHE_RESOURCE r);
+}
+returns this resource group.  This resource group may not be changed.
+@PP
+The event resources that @C { r } is preassigned to are made
+available by calling
+@ID @C {
+int KheResourcePreassignedEventResourceCount(KHE_RESOURCE r);
+KHE_EVENT_RESOURCE KheResourcePreassignedEventResource(KHE_RESOURCE r,
+  int i);
+}
+Naturally, the entire instance has to be loaded for these to work
+correctly.  At present there is no way to visit events containing
+event resource groups containing a given resource.
+@PP
+Some constraints apply to resources.  When these constraints are
+created, they are added to the resources they apply to.  To visit
+all the constraints applicable to a given resource, call
+@ID @C {
+int KheResourceConstraintCount(KHE_RESOURCE r);
+KHE_CONSTRAINT KheResourceConstraint(KHE_RESOURCE r, int i);
+}
+There may be any number of avoid clashes constraints, avoid
+unavailable times constraints, limit idle times constraints,
+cluster busy times constraints, limit busy times constraints,
+and limit workload constraints, in any order.  There are also
+@ID @C {
+KHE_TIME_GROUP KheResourceHardUnavailableTimeGroup(KHE_RESOURCE r);
+KHE_TIME_GROUP KheResourceHardAndSoftUnavailableTimeGroup(
+  KHE_RESOURCE r);
+}
+@C { KheResourceHardUnavailableTimeGroup } returns the union of the
+domains of the required unavailable times constraints of @C { r }.
+@C { KheResourceHardAndSoftUnavailableTimeGroup } does the same,
+except that the domains of all unavailable times constraints are
+included.  Both functions return the empty time group when there
+are no applicable constraints.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheResourceDebug(KHE_RESOURCE r, int verbosity,
+  int indent, FILE *fp)
+}
+produces a debug print of resource @C { r } onto file @C { fp }
+with the given verbosity and indent, as described for debug
+functions in general in Section {@NumberOf intro.common}.
+@End @SubSection
+
+@SubSection
+    @Title { Resource layers }
+    @Tag { resources_layer }
+@Begin
+@LP
+A @I { resource layer } is the set of all events containing a preassignment
+of a given resource @C { r }, provided @C { r } is the subject of a
+required avoid clashes constraint.  The events of a resource layer may
+not overlap in time:  they must spread horizontally across the timetable,
+hence the term `layer'.  Within a solution, the meets derived from the
+events of one resource layer form a @I { solution layer }, or just
+@I { layer }.
+@PP
+Layers are important in high school timetabling, at least for student
+group resources, since the total duration of their events is often
+close to the total duration of the cycle, and hence these events
+strongly constrain each other.  The following operations are available
+on the layer of @C { r }:
+@ID @C {
+int KheResourceLayerEventCount(KHE_RESOURCE r);
+KHE_EVENT KheResourceLayerEvent(KHE_RESOURCE r, int i);
+int KheResourceLayerDuration(KHE_RESOURCE r);
+}
+The first two work together in the usual way to return the events
+of the resource layer.  If the resource is not preassigned to any events, or
+has no required avoid clashes constraint, then @C { KheResourceLayerEventCount }
+returns 0.  @C { KheResourceLayerDuration } returns the total duration of
+the events of the layer.  In the unlikely case that @C { r } is
+assigned to the same event twice, the event still appears only once
+in the list of events of the layer, and contributes its duration
+only once to the layer duration.
+@End @SubSection
+
+@SubSection
+    @Title { Resource similarity and inferring resource partitions }
+    @Tag { resources_infer }
+@Begin
+@LP
+Following the general approach introduced in Section {@NumberOf intro.common},
+KHE offers function
+@ID @C {
+bool KheResourceSimilar(KHE_RESOURCE r1, KHE_RESOURCE r2);
+}
+which returns @C { true } when resources @C { r1 } and @C { r2 }
+are similar:  when they lie in similar resource groups and are
+preassigned to similar events.  The exact definition is given below.
+@PP
+@C { KheResourceSimilar } often succeeds in recognising that student
+group resources from the same form are similar, and that teacher
+resources from the same faculty are similar.  However, it needs
+positive evidence to work with.  For example, when there are no student
+or teacher resource groups, and each event contains one preassigned
+student group resource, one preassigned teacher resource, and a
+request for one ordinary classroom, there is no basis for grouping
+the resources and each will be considered similar only to itself.
+@PP
+Resource partitions (Section {@NumberOf resource_types}) are not
+part of the XML format.  But they are useful when solving, so
+@C { KheInstanceMakeEnd } has an @C { infer_resource_partitions }
+parameter which, when @C { true }, causes partitions to be added
+to each resource type @C { rt } that lacks them.  Afterwards,
+@C { KheResourceTypeHasPartitions(rt) } will be @C { true },
+@C { KheResourceGroupIsPartition(rg) } will be @C { true } for some
+of the resource groups of @C { rt }, and @C { KheResourcePartition(r) }
+will return a non-@C { NULL } partition for each resource @C { r }.
+All this is exactly as though the partitions had been entered
+explicitly, except that any specially created resource groups will
+not be visited by @C { KheResourceTypeResourceGroupCount } and
+@C { KheResourceTypeResourceGroup }.
+@PP
+The algorithm for inferring resource partitions is a simple application
+of resource similarity.  Build a graph in which each node corresponds
+to one resource, and an edge joins two nodes when their resources are
+similar.  The partitions are the connected components of this graph.
+# @PP
+# The algorithm for inferring partitions clusters together resources
+# that are used in similar ways.  It examines the resource groups
+# containing the resources and the durations and prefer resources
+# constraints of the events that the resources are preassigned to,
+# and makes heuristic decisions, trying to avoid the two useless
+# extremes of placing each resource in its own partition, and
+# placing all resources in a single partition.
+@PP
+The details of how @C { KheResourceSimilar } works are not very
+important, but, for the record, here they are.  To decide whether
+two resources are similar or not, two non-negative integers, the
+@I { positive evidence } and the @I { negative evidence }, are
+calculated as explained below.  The two resources are similar if
+the positive evidence exceeds the negative evidence by at least two.
+@PP
+Evidence comes from two sources:  the resource groups that the
+resources lie in, and the events that the resources are preassigned
+to.  A resource group is @I { admissible } (i.e. admissible as
+evidence) if its number of resources is at least two and at most one
+third of the number of resources of its resource type.  Inadmissible
+resource groups are considered to contain no useful information and
+are ignored.  Each case of an admissible resource group containing
+both resources counts as two units of positive evidence, and each
+case of an admissible resource group containing one resource but
+not the other counts as one unit of negative evidence.
+@PP
+A definition of what it means for two events to be similar appears
+in Section {@NumberOf events_events}.  Each case of an event
+preassigned one resource being similar to an event preassigned the
+other counts as two units of positive evidence.  Each case of an
+event preassigned one resource for which there is no similar event
+preassigned the other counts as one unit of negative evidence.  The
+cases are distinct, in the sense that each event participates in at
+most one case.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Events }
+    @Tag { events }
+@Begin
+@BeginSubSections
+
+@SubSection
+    @Title { Event groups }
+@Begin
+@LP
+An event group, representing a set of events, is created and added
+to an instance by calling
+@ID @C {
+bool KheEventGroupMake(KHE_INSTANCE ins, KHE_EVENT_GROUP_KIND kind,
+  char *id, char *name, KHE_EVENT_GROUP *eg);
+}
+As usual, it returns @C { false } only when @C { id } is
+non-@C { NULL } and @C { ins } already contains an event group with
+this @C { id }.  To set and retrieve the back pointer, call
+@ID @C {
+void KheEventGroupSetBack(KHE_EVENT_GROUP eg, void *back);
+void *KheEventGroupBack(KHE_EVENT_GROUP eg);
+}
+as usual.  The other attributes may be retrieved by the calls
+@ID @C {
+KHE_INSTANCE KheEventGroupInstance(KHE_EVENT_GROUP eg);
+KHE_EVENT_GROUP_KIND KheEventGroupKind(KHE_EVENT_GROUP eg);
+char *KheEventGroupId(KHE_EVENT_GROUP eg);
+char *KheEventGroupName(KHE_EVENT_GROUP eg);
+}
+The event group kind is a value of type
+@ID @C {
+typedef enum {
+  KHE_EVENT_GROUP_KIND_COURSE,
+  KHE_EVENT_GROUP_KIND_ORDINARY
+} KHE_EVENT_GROUP_KIND;
+}
+The XML format allows some event groups to be referred to as Courses,
+although they do not differ from other event groups in any other way.
+The @C { kind } attribute records this distinction; it is only used
+by KHE when reading and writing XML files, not when solving.
+@PP
+Initially the event group is empty.  There are several operations
+for changing its events:
+@ID @C {
+void KheEventGroupAddEvent(KHE_EVENT_GROUP eg, KHE_EVENT e);
+void KheEventGroupSubEvent(KHE_EVENT_GROUP eg, KHE_EVENT e);
+void KheEventGroupUnion(KHE_EVENT_GROUP eg, KHE_EVENT_GROUP eg2);
+void KheEventGroupIntersect(KHE_EVENT_GROUP eg, KHE_EVENT_GROUP eg2);
+void KheEventGroupDifference(KHE_EVENT_GROUP eg, KHE_EVENT_GROUP eg2);
+}
+These add an event to @C { eg }, remove an event, replace @C { eg }'s
+set of events with its union or intersecton with the set of events of
+@C { eg2 }, and with the difference of @C { eg }'s events and
+@C { eg2 }'s events.  The first two operations are treated as set
+operations, so @C { KheEventGroupAddEvent } does nothing if @C { e }
+is already present, and @C { KheEventGroupSubEvent } does nothing if
+@C { e } is not already present.
+@PP
+Changes to the event groups of an instance are not allowed after
+@C { KheInstanceMakeEnd } is called, since instances are immutable
+after that point.  However, solutions may construct event groups
+for their own use (Section {@NumberOf solutions.groups}).
+@PP
+There are also predefined event groups, for the complete set
+of events of the instance and for the empty set of events
+(Section {@NumberOf instances}), and one for each event of the
+instance, containing just that event (Section {@NumberOf events}).
+The events in predefined event groups may not be changed.
+@PP
+To visit the events of an event group, functions
+@ID @C {
+int KheEventGroupEventCount(KHE_EVENT_GROUP eg);
+KHE_EVENT KheEventGroupEvent(KHE_EVENT_GROUP eg, int i);
+}
+are used in the usual way.  And
+@ID @C {
+bool KheEventGroupContains(KHE_EVENT_GROUP eg, KHE_EVENT e);
+bool KheEventGroupEqual(KHE_EVENT_GROUP eg1, KHE_EVENT_GROUP eg2);
+bool KheEventGroupSubset(KHE_EVENT_GROUP eg1, KHE_EVENT_GROUP eg2);
+bool KheEventGroupDisjoint(KHE_EVENT_GROUP eg1, KHE_EVENT_GROUP eg2);
+}
+return @C { true } if @C { eg } contains @C { e }, if @C { eg1 }
+and @C { eg2 } contain the same events, if the events of @C { eg1 }
+are a subset of the events of @C { eg2 }, and if the events of
+@C { eg1 } and @C { eg2 } are disjoint.  These tests use bit vectors,
+so are quite fast.  There is nothing to prevent two distinct event
+groups from containing the same events, so the C equality operator
+should never be applied to event groups.
+@PP
+Some constraints apply to event groups.  When these are created,
+they are added to the event groups they apply to.  To visit all
+the constraints that apply to a given event group, call
+@ID @C {
+int KheEventGroupConstraintCount(KHE_EVENT_GROUP eg);
+KHE_CONSTRAINT KheEventGroupConstraint(KHE_EVENT_GROUP eg, int i);
+}
+There may be any number of avoid split assignments constraints,
+spread events constraints, and link events constraints, in any order.
+@End @SubSection
+
+@SubSection
+    @Title { Events }
+    @Tag { events_events }
+@Begin
+@LP
+An event is created and added to an instance by calling
+@ID @C {
+bool KheEventMake(KHE_INSTANCE ins, char *id, char *name, char *color,
+  int duration, int workload, KHE_TIME preassigned_time, KHE_EVENT *e);
+}
+This works in the usual way, returning @C { false } only if @C { id }
+is non-@C { NULL } and is already used by an existing event of @C { ins }.
+Parameter @C { color } is an optional color to be used when printing
+the event in timetables.  If non-@C { NULL }, its value must be a
+legal Web colour (@C { "#7CFC00" } for example, or a colour name).
+A duration and workload are compulsory (the XML specification states
+that a missing workload is taken to be equal to the duration), but
+the preassigned time may be @C { NULL }.  The back pointer may be
+set and retrieved by
+@ID @C {
+void KheEventSetBack(KHE_EVENT e, void *back);
+void *KheEventBack(KHE_EVENT e);
+}
+as usual, and the other attributes may be retrieved by
+@ID @C {
+KHE_INSTANCE KheEventInstance(KHE_EVENT e);
+char *KheEventId(KHE_EVENT e);
+char *KheEventName(KHE_EVENT e);
+char *KheEventColor(KHE_EVENT e);
+int KheEventDuration(KHE_EVENT e);
+int KheEventWorkload(KHE_EVENT e);
+KHE_TIME KheEventPreassignedTime(KHE_EVENT e);
+}
+There are two other useful query functions.  First,
+@ID @C {
+int KheEventIndex(KHE_EVENT e);
+}
+returns the index number of @C { e } (0 for the first event inserted,
+1 for the next, etc.).  This number has no timetabling significance;
+it is included merely for convenience.  Second,
+@ID @C {
+int KheEventDemand(KHE_EVENT e);
+}
+returns the @I demand of @C { e }, defined to be its duration
+multiplied by the number of its event resources (in matching
+terms, the number of demand tixels).  This is included as a
+measure of the overall bulk of an event, useful for sorting
+events by estimated difficulty of timetabling.
+@PP
+Each event also contains any number of event resources.  These are
+added to their events as they are created.  To visit them, call
+@ID @C {
+int KheEventResourceCount(KHE_EVENT e);
+KHE_EVENT_RESOURCE KheEventResource(KHE_EVENT e, int i);
+}
+in the usual way.  There is also
+@ID @C {
+bool KheEventRetrieveEventResource(KHE_EVENT e, char *role,
+  KHE_EVENT_RESOURCE *er);
+}
+which attempts to retrieve an event resource from @C { e } with
+the given @C { role }.  If there is such an event resource, the
+function sets @C { *er } to that event resource and returns
+@C { true }.  If not, @C { *er } is not changed and @C { false }
+is returned.
+@PP
+Each event also contains any number of event resource groups.  These
+are added to their events as they are created.  To visit them, call
+#Each
+#of these is just a resource group; adding it is @I semantically
+#equivalent to adding one event resource for each resource of the
+#resource group, preassigned that resource, but not @I formally
+#equivalent, because event resource groups are stored as themselves,
+#they are not expanded into event resources.  To add an event
+#resource group, call
+#@ID @C {
+#void KheEventResourceGroupMake(KHE_EVENT e, KHE_RESOURCE_GROUP rg);
+#}
+#To visit the event resource groups of an event, call
+@ID @C {
+int KheEventResourceGroupCount(KHE_EVENT e);
+KHE_EVENT_RESOURCE_GROUP KheEventResourceGroup(KHE_EVENT e, int i);
+}
+as usual.
+@PP
+For convenience, an event group is created for each event, holding
+just that event.  Call
+@ID @C {
+KHE_EVENT_GROUP KheEventSingletonEventGroup(KHE_EVENT event);
+}
+to retrieve this event group.  Other events may not be added to it.
+@PP
+Some constraints apply to events.  When these constraints are created,
+they are added to the events they apply to.  To visit all the
+constraints applicable to a given event, call
+@ID @C {
+int KheEventConstraintCount(KHE_EVENT e);
+KHE_CONSTRAINT KheEventConstraint(KHE_EVENT e, int i);
+}
+There may be any number of assign time constraints, prefer times
+constraints, split events constraints, and distribute split events
+constraints, in any order, except that an event with a preassigned
+time cannot have assign time constraints and prefer times constraints.
+@PP
+Following the general pattern given in Section {@NumberOf intro.common},
+function
+@ID @C {
+bool KheEventSimilar(KHE_EVENT e1, KHE_EVENT e2);
+}
+returns @C { true } if @C { e1 } and @C { e2 } are similar:  if they
+have the same duration and similar event resources.  The exact
+definition is as follows.  An event is @I admissible if it
+has one or more admissible event resources.  An event resource is
+admissible if its hard domain (reflecting its prefer resources constraints
+and any preassignment) is an admissible resource group, as defined
+in Section {@NumberOf resources_infer}.  An event is always similar
+to itself.  Two distinct events are similar if they are admissible,
+have equal durations, and their admissible event resources (taken in
+any order) have equal hard domains.
+@PP
+Function
+@ID @C {
+void KheEventDebug(KHE_EVENT e, int verbosity, int indent, FILE *fp);
+}
+produces a debug print of @C { e } onto @C { fp } with the given
+verbosity and indent, in the usual way.
+@End @SubSection
+
+@SubSection
+    @Title { Event resources }
+    @Tag { event_resources }
+@Begin
+@LP
+An event resource is created and added to an event by the call
+@ID { 0.98 1.0 } @Scale @C {
+bool KheEventResourceMake(KHE_EVENT event, KHE_RESOURCE_TYPE rt,
+  KHE_RESOURCE preassigned_resource, char *role, int workload,
+  KHE_EVENT_RESOURCE *er);
+}
+This returns @C { false } only when the optional @C { role }
+parameter (used only when writing XML) is non-@C { NULL }
+and there is already an event resource within @C { event } with
+this value for @C { role }.  Parameter @C { preassigned_resource }
+is an optional resource preassignment and may be @C { NULL }.
+@PP
+To set and retrieve the back pointer of an event resource, call
+@ID @C {
+void KheEventResourceSetBack(KHE_EVENT_RESOURCE er, void *back);
+void *KheEventResourceBack(KHE_EVENT_RESOURCE er);
+}
+as usual.  The other attributes may be retrieved by
+@ID @C {
+KHE_EVENT KheEventResourceEvent(KHE_EVENT_RESOURCE er);
+KHE_RESOURCE_TYPE KheEventResourceResourceType(KHE_EVENT_RESOURCE er);
+KHE_RESOURCE KheEventResourcePreassignedResource(KHE_EVENT_RESOURCE er);
+char *KheEventResourceRole(KHE_EVENT_RESOURCE er);
+int KheEventResourceWorkload(KHE_EVENT_RESOURCE er);
+int KheEventResourceIndexInEvent(KHE_EVENT_RESOURCE er);
+int KheEventResourceIndexInInstance(KHE_EVENT_RESOURCE er);
+}
+@C { KheEventResourceIndexInEvent } is the index number of @C { er }
+in the enclosing event:  the number @C { i } such that
+@C { KheEventResource(e, i) } returns @C { er }.
+@C { KheEventResourceIndexInInstance } is its index number
+in the instance, that is, the number of event resources that
+precede it either in its own event or in events preceding its
+own event.
+@PP
+Some constraints apply to event resources.  When these are created,
+they are added to the event resources they apply to.  To visit the
+constraints that apply to a given event resource, call
+@ID @C {
+int KheEventResourceConstraintCount(KHE_EVENT_RESOURCE er);
+KHE_CONSTRAINT KheEventResourceConstraint(KHE_EVENT_RESOURCE er, int i);
+}
+There may be any number of assign resources constraints, prefer
+resources constraints, and avoid split assignments constraints, in any
+order, except that an event resource with a preassigned resource cannot
+have assign resource constraints and prefer resources constraints.  If
+the @C { i }'th constraint is an avoid split assignments constraint,
+function
+@ID @C {
+int KheEventResourceConstraintEventGroupIndex(KHE_EVENT_RESOURCE er,
+  int i);
+}
+may be called to find the event group index within that constraint
+that contains @C { er }.  (It returns @C { -1 } if the @C { i }'th
+constraint is not an avoid split assignments constraint.)
+@PP
+After the instance is complete but not before, functions
+@ID { 0.95 1.0 } @Scale @C {
+KHE_RESOURCE_GROUP KheEventResourceHardDomain(KHE_EVENT_RESOURCE er);
+KHE_RESOURCE_GROUP KheEventResourceHardAndSoftDomain(KHE_EVENT_RESOURCE er);
+}
+return domains suited to @C { er }.  The resource group returned by
+@C { KheEventResourceHardDomain } represents the intersection of the
+domains of the required prefer resources constraints, with weight greater
+than 0, of @C { er } and also of other event resources that share a
+required avoid split assignments constraint of weight greater than 0
+with @C { er }, either directly or indirectly via any number of
+intermediate event resources.  If any of these event resources is
+preassigned, then the singleton resource groups containing the
+preassigned resources are intersected along with the other groups.
+@C { KheEventResourceHardAndSoftDomain } is calculated in the same
+way, except that both hard and soft prefer resources and avoid split
+assignments constraints are taken into account, producing smaller
+domains in general.
+@PP
+These functions are not recommended for use when solving, since
+@C { KheTaskTreeMake } offers a more sophisticated way of initializing
+the domains of tasks.  @C { KheEventResourceHardDomain } is used
+when deciding whether events are similar.
+# This is calculated as follows.  If @C { er }
+# contains a preassigned resource, the result is the resource group
+# containing just that resource.  Otherwise, the result is the
+# intersection of the domains of all the required prefer resource
+# constraints of weight greater than 0 that apply to @C { er }, or,
+# if there are none, the complete set of resources of @C { er }'s
+# resource type.
+@PP
+Function
+@ID @C {
+void KheEventResourceDebug(KHE_EVENT_RESOURCE er, int verbosity,
+  int indent, FILE *fp);
+}
+produces a debug print of @C { er } onto @C { fp } with the
+given verbosity and indent, in the usual way.
+@End @SubSection
+
+@SubSection
+    @Title { Event resource groups }
+    @Tag { event_resource_groups }
+@Begin
+@LP
+An event resource group is created and added to an event by the call
+@ID @C {
+KHE_EVENT_RESOURCE_GROUP KheEventResourceGroupMake(KHE_EVENT event,
+  KHE_RESOURCE_GROUP rg);
+}
+Its attributes may be retrieved by calling
+@ID @C {
+KHE_EVENT KheEventResourceGroupEvent(KHE_EVENT_RESOURCE_GROUP erg);
+KHE_RESOURCE_GROUP KheEventResourceGroupResourceGroup(
+  KHE_EVENT_RESOURCE_GROUP erg);
+}
+In addition to making a new event resource group object,
+@C { KheEventResourceGroupMake } calls @C { KheEventResourceMake }
+once for each resource of @C { rg }, with the resource for its
+@C { preassigned_resource } parameter and the obvious
+values for its other parameters.  This satisfies the semantic
+requirement that adding a resource group should be just like adding
+its resources individually.  These added event resources appear on
+the list of event resources of the event just like other event
+resources; they can be distinguished from them only by calling
+@ID @C {
+KHE_EVENT_RESOURCE_GROUP KheEventResourceEventResourceGroup(
+  KHE_EVENT_RESOURCE er);
+}
+which returns the event resource group that caused @C { er } to be
+created when there is one, and @C { NULL } when @C { er } was
+created directly.  For example, when printing XML files, KHE calls
+this function once for each event resource, to decide whether it
+should be printed explicitly or omitted because it is part of an
+event resource group.  Function
+@ID @C {
+void KheEventResourceGroupDebug(KHE_EVENT_RESOURCE_GROUP erg,
+  int verbosity, int indent, FILE *fp);
+}
+produces a debug print of @C { erg } onto @C { fp } with the
+given verbosity and indent, in the usual way.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Constraints }
+@Begin
+@LP
+Some attributes of constraints are common to all kinds of constraints;
+others vary from one kind of constraint to another.  Accordingly, KHE
+offers type @C { KHE_CONSTRAINT }, which is the abstract supertype of
+all kinds of constraints, and one subtype of this type for each kind
+of constraint.
+@PP
+To set and retrieve the back pointer of a constraint object, call
+@ID @C {
+void KheConstraintSetBack(KHE_CONSTRAINT c, void *back);
+void *KheConstraintBack(KHE_CONSTRAINT c);
+}
+as usual.  To retrieve the other attributes common to all kinds of
+constraints, use functions
+@ID @C {
+KHE_INSTANCE KheConstraintInstance(KHE_CONSTRAINT c);
+char *KheConstraintId(KHE_CONSTRAINT c);
+char *KheConstraintName(KHE_CONSTRAINT c);
+bool KheConstraintRequired(KHE_CONSTRAINT c);
+int KheConstraintWeight(KHE_CONSTRAINT c);
+KHE_COST KheConstraintCombinedWeight(KHE_CONSTRAINT c);
+KHE_COST_FUNCTION KheConstraintCostFunction(KHE_CONSTRAINT c);
+int KheConstraintIndex(KHE_CONSTRAINT c);
+KHE_CONSTRAINT_TAG KheConstraintTag(KHE_CONSTRAINT c);
+}
+@C { KheConstraintInstance } returns the instance;
+@C { KheConstraintId } and @C { KheConstraintName } return the
+constraint's Id and Name (as usual, these are optional in KHE,
+needed only when writing XML).  @C { KheConstraintRequired }
+is @C { true } when the Required attribute is true.
+@PP
+@C { KheConstraintWeight } is the weight given to violations of the
+constraint.  As explained in Section {@NumberOf monitoring.cost},
+@C { KheConstraintCombinedWeight } is similar, except that hard
+constraints are weighted more heavily; @C { KHE_COST } is also
+defined there.  @C { KheConstraintCostFunction } is the cost
+function used when calculating the cost of deviations, of type
+@ID @C {
+typedef enum {
+  KHE_SUM_STEPS_COST_FUNCTION,
+  KHE_STEP_SUM_COST_FUNCTION,
+  KHE_SUM_COST_FUNCTION,
+  KHE_SUM_SQUARES_COST_FUNCTION,
+  KHE_SQUARE_SUM_COST_FUNCTION
+} KHE_COST_FUNCTION;
+}
+@C { KheConstraintIndex } returns an automatically generated
+index number for @C { c }:  0 for the first constraint created, 1
+for the second, and so on.  @C { KheConstraintTag } is the type tag
+which determines which concrete kind of constraint this is, with type
+@ID @C {
+typedef enum {
+  KHE_ASSIGN_RESOURCE_CONSTRAINT_TAG,
+  KHE_ASSIGN_TIME_CONSTRAINT_TAG,
+  KHE_SPLIT_EVENTS_CONSTRAINT_TAG,
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT_TAG,
+  KHE_PREFER_RESOURCES_CONSTRAINT_TAG,
+  KHE_PREFER_TIMES_CONSTRAINT_TAG,
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT_TAG,
+  KHE_SPREAD_EVENTS_CONSTRAINT_TAG,
+  KHE_LINK_EVENTS_CONSTRAINT_TAG,
+  KHE_AVOID_CLASHES_CONSTRAINT_TAG,
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT_TAG,
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT_TAG,
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT_TAG,
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT_TAG,
+  KHE_LIMIT_WORKLOAD_CONSTRAINT_TAG,
+  KHE_CONSTRAINT_TAG_COUNT
+} KHE_CONSTRAINT_TAG;
+}
+The last value is not a valid tag; it counts the number of constraints,
+allowing code of the form
+@ID @C {
+for( tag = 0;  tag < KHE_CONSTRAINT_TAG_COUNT;  tag++ )
+  ...
+}
+to be written which stands a good chance of not needing to be
+changed if more constraints are added in the future.
+@PP
+The number of points of application of a constraint is returned by
+@ID @C {
+int KheConstraintAppliesToCount(KHE_CONSTRAINT c);
+}
+For an assign resource constraint, this is the total number of
+event resources listed; for a split events constraint it is
+the total number of events listed plus the sum of the cardinalities
+of the event groups listed, and so on.
+@PP
+Given a tag, one can obtain a string representation of
+the constraint name by calling
+@ID @C {
+char *KheConstraintTagShow(KHE_CONSTRAINT_TAG tag);
+char *KheConstraintTagShowSpaced(KHE_CONSTRAINT_TAG tag);
+}
+The first returns an unspaced form (@C { "AssignResourceConstraint" }
+and so on), the second returns a spaced form
+(@C { "Assign Resource Constraint" } and so on), which is more
+suitable for display headings.  There is also
+@ID @C {
+KHE_CONSTRAINT_TAG KheStringToConstraintTag(char *str);
+}
+which implements the inverse function, from unspaced constraint
+names to constraint tags, and
+@ID @C {
+char *KheCostFunctionShow(KHE_COST_FUNCTION cf);
+}
+which returns a cost function's string representation, and
+@ID @C {
+void KheConstraintDebug(KHE_CONSTRAINT c, int verbosity,
+  int indent, FILE *fp);
+}
+which produces a debug print of @C { c } onto @C { fp } with the
+given verbosity and indent.
+@PP
+The names of the concrete subtypes themselves are
+@ID @C {
+KHE_ASSIGN_RESOURCE_CONSTRAINT
+KHE_ASSIGN_TIME_CONSTRAINT
+KHE_SPLIT_EVENTS_CONSTRAINT
+KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT
+KHE_PREFER_RESOURCES_CONSTRAINT
+KHE_PREFER_TIMES_CONSTRAINT
+KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT
+KHE_SPREAD_EVENTS_CONSTRAINT
+KHE_LINK_EVENTS_CONSTRAINT
+KHE_AVOID_CLASHES_CONSTRAINT
+KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT
+KHE_LIMIT_IDLE_TIMES_CONSTRAINT
+KHE_CLUSTER_BUSY_TIMES_CONSTRAINT
+KHE_LIMIT_BUSY_TIMES_CONSTRAINT
+KHE_LIMIT_WORKLOAD_CONSTRAINT
+}
+Downcasting and upcasting between @C { KHE_CONSTRAINT } and each of
+these subtypes, using C casts, is a normal part of the use of KHE.
+Alternatively, since C casts can also be used for unsafe things,
+explicit functions are offered for upcasting:
+@ID @C {
+KHE_CONSTRAINT KheFromAssignResourceConstraint(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c);
+KHE_CONSTRAINT KheFromAssignTimeConstraint(
+  KHE_ASSIGN_TIME_CONSTRAINT c);
+KHE_CONSTRAINT KheFromSplitEventsConstraint(
+  KHE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_CONSTRAINT KheFromDistributeSplitEventsConstraint(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_CONSTRAINT KheFromPreferResourcesConstraint(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromPreferTimesConstraint(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromAvoidSplitAssignmentsConstraint(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c);
+KHE_CONSTRAINT KheFromSpreadEventsConstraint(
+  KHE_SPREAD_EVENTS_CONSTRAINT c);
+KHE_CONSTRAINT KheFromLinkEventsConstraint(
+  KHE_LINK_EVENTS_CONSTRAINT c);
+KHE_CONSTRAINT KheFromAvoidClashesConstraint(
+  KHE_AVOID_CLASHES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromAvoidUnavailableTimesConstraint(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromLimitIdleTimesConstraint(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromClusterBusyTimesConstraint(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromLimitBusyTimesConstraint(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+KHE_CONSTRAINT KheFromLimitWorkloadConstraint(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c);
+}
+and for downcasting:
+@ID @C {
+KHE_ASSIGN_RESOURCE_CONSTRAINT
+  KheToAssignResourceConstraint(KHE_CONSTRAINT c);
+KHE_ASSIGN_TIME_CONSTRAINT
+  KheToAssignTimeConstraint(KHE_CONSTRAINT c);
+KHE_SPLIT_EVENTS_CONSTRAINT
+  KheToSplitEventsConstraint(KHE_CONSTRAINT c);
+KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT
+  KheToDistributeSplitEventsConstraint(KHE_CONSTRAINT c);
+KHE_PREFER_RESOURCES_CONSTRAINT
+  KheToPreferResourcesConstraint(KHE_CONSTRAINT c);
+KHE_PREFER_TIMES_CONSTRAINT
+  KheToPreferTimesConstraint(KHE_CONSTRAINT c);
+KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT
+  KheToAvoidSplitAssignmentsConstraint(KHE_CONSTRAINT c);
+KHE_SPREAD_EVENTS_CONSTRAINT
+  KheToSpreadEventsConstraint(KHE_CONSTRAINT c);
+KHE_LINK_EVENTS_CONSTRAINT
+  KheToLinkEventsConstraint(KHE_CONSTRAINT c);
+KHE_AVOID_CLASHES_CONSTRAINT
+  KheToAvoidClashesConstraint(KHE_CONSTRAINT c);
+KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT
+  KheToAvoidUnavailableTimesConstraint(KHE_CONSTRAINT c);
+KHE_LIMIT_IDLE_TIMES_CONSTRAINT
+  KheToLimitIdleTimesConstraint(KHE_CONSTRAINT c);
+KHE_CLUSTER_BUSY_TIMES_CONSTRAINT
+  KheToClusterBusyTimesConstraint(KHE_CONSTRAINT c);
+KHE_LIMIT_BUSY_TIMES_CONSTRAINT
+  KheToLimitBusyTimesConstraint(KHE_CONSTRAINT c);
+KHE_LIMIT_WORKLOAD_CONSTRAINT
+  KheToLimitWorkloadConstraint(KHE_CONSTRAINT c);
+}
+The downcasting functions check that their parameter is of the
+correct type, and abort if not.
+@BeginSubSections
+
+@SubSection
+   @Title { Assign resource constraints }
+@Begin
+@LP
+An assign resource constraint is created and added to an instance by
+@ID @C {
+bool KheAssignResourceConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  char *role, KHE_ASSIGN_RESOURCE_CONSTRAINT *c);
+}
+This accepts the attributes common to all constraints, followed by
+an optional @C { role }, which is specific to this kind of constraint.
+As usual, if successful it returns @C { true }, setting @C { *c } to
+the new constraint; if not (which can only be because @C { id } is
+non-@C { NULL } and equal to the Id of an existing constraint of
+@C { ins }), then it returns @C { false }, setting @C { *c } to
+@C { NULL }.
+@PP
+The attributes common to all kinds of constraints may be retrieved
+by upcasting to @C { KHE_CONSTRAINT } and calling the relevant
+operations on that type.  The attribute specific to assign resources
+constraints may be retrieved by calling
+@ID @C {
+char *KheAssignResourceConstraintRole(KHE_ASSIGN_RESOURCE_CONSTRAINT c);
+}
+Initially the constraint has no points of application.  KHE offers
+two ways in which these can be specified.  The first way is to give
+@C { NULL } for @C { role }, and then add the event resources that
+this constraint applies to by calling
+@ID @C {
+void KheAssignResourceConstraintAddEventResource(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, KHE_EVENT_RESOURCE er);
+}
+as often as necessary.  It is an error to call this function when
+@C { er } contains a preassigned resource, since assign resource
+constraints do not apply to event resources with preassigned resources.
+To visit the event resources of @C { c }, call
+@ID @C {
+int KheAssignResourceConstraintEventResourceCount(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c);
+KHE_EVENT_RESOURCE KheAssignResourceConstraintEventResource(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, int i);
+}
+as usual.
+@PP
+The second way to specify the applicable event resources, used when
+reading XML files, is to give a non-@C { NULL } value for @C { role }
+and then add events and event groups.  To add events and visit them,
+the calls are
+@ID @C {
+void KheAssignResourceConstraintAddEvent(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, KHE_EVENT e);
+int KheAssignResourceConstraintEventCount(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c);
+KHE_EVENT KheAssignResourceConstraintEvent(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, int i);
+}
+To add event groups and visit them, the calls are
+@ID @C { 
+void KheAssignResourceConstraintAddEventGroup(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, KHE_EVENT_GROUP eg);
+int KheAssignResourceConstraintEventGroupCount(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c);
+KHE_EVENT_GROUP KheAssignResourceConstraintEventGroup(
+  KHE_ASSIGN_RESOURCE_CONSTRAINT c, int i);
+}
+When this is done, KHE stores the events and event groups in the
+constraint so that they can be written out again correctly later,
+but it also works out which event resources the constraint applies
+to and calls @C { KheAssignResourceConstraintAddEventResource } for
+each of them, taking due note of the XML rule that it does not apply
+when an event does not contain an event resource with the specified
+role, or when such an event resource has a preassigned resource.
+@End @SubSection
+
+@SubSection
+  @Title { Assign time constraints }
+@Begin
+@LP
+An assign time constraint is created and added to an instance by
+@ID @C {
+bool KheAssignTimeConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_ASSIGN_TIME_CONSTRAINT *c);
+}
+As usual, if successful it returns @C { true }, setting @C { *c } to
+the new constraint; if not (which can only be because @C { id } is
+non-@C { NULL } and equal to the Id of an existing constraint of
+@C { ins }), then it returns @C { false }, setting @C { *c } to
+@C { NULL }.  The attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operations on that type.
+@PP
+The points of application of an assign time constraint are events,
+and the XML file allows them to be given individually and in groups.
+To add individual events and visit them, call
+@ID @C {
+void KheAssignTimeConstraintAddEvent(KHE_ASSIGN_TIME_CONSTRAINT c,
+  KHE_EVENT e);
+int KheAssignTimeConstraintEventCount(KHE_ASSIGN_TIME_CONSTRAINT c);
+KHE_EVENT KheAssignTimeConstraintEvent(KHE_ASSIGN_TIME_CONSTRAINT c,
+  int i);
+}
+To add groups of events and visit them, call
+@ID @C {
+void KheAssignTimeConstraintAddEventGroup(KHE_ASSIGN_TIME_CONSTRAINT c,
+  KHE_EVENT_GROUP eg);
+int KheAssignTimeConstraintEventGroupCount(
+  KHE_ASSIGN_TIME_CONSTRAINT c);
+KHE_EVENT_GROUP KheAssignTimeConstraintEventGroup(
+  KHE_ASSIGN_TIME_CONSTRAINT c, int i);
+}
+The XML specification states that assign time constraints skip
+events with preassigned times, whether those events are mentioned
+or not.  Accordingly, although such events are added to constraints
+by the calls just given, the reverse links, from the events to the
+constraint, are added only to events that do not have preassigned
+times.
+@End @SubSection
+
+@SubSection
+  @Title { Split events constraints }
+@Begin
+@LP
+A split events constraint is created and added to an instance by
+@ID @C {
+bool KheSplitEventsConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  int min_duration, int max_duration, int min_amount,
+  int max_amount, KHE_SPLIT_EVENTS_CONSTRAINT *c);
+}
+in the usual way.  Most of the attributes may be retrieved by upcasting
+to @C { KHE_CONSTRAINT } and calling the relevant operation on that
+type.  The exceptions are
+@ID @C {
+int KheSplitEventsConstraintMinDuration(KHE_SPLIT_EVENTS_CONSTRAINT c);
+int KheSplitEventsConstraintMaxDuration(KHE_SPLIT_EVENTS_CONSTRAINT c);
+int KheSplitEventsConstraintMinAmount(KHE_SPLIT_EVENTS_CONSTRAINT c);
+int KheSplitEventsConstraintMaxAmount(KHE_SPLIT_EVENTS_CONSTRAINT c);
+}
+which return the various attributes specific to split events
+constraints.
+@PP
+The points of application are events, and, as for assign time
+constraints, these may be added and visited individually:
+@ID @C {
+void KheSplitEventsConstraintAddEvent(KHE_SPLIT_EVENTS_CONSTRAINT c,
+  KHE_EVENT e);
+int KheSplitEventsConstraintEventCount(KHE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_EVENT KheSplitEventsConstraintEvent(KHE_SPLIT_EVENTS_CONSTRAINT c,
+  int i);
+}
+and also in groups:
+@ID @C {
+void KheSplitEventsConstraintAddEventGroup(
+  KHE_SPLIT_EVENTS_CONSTRAINT c, KHE_EVENT_GROUP eg);
+int KheSplitEventsConstraintEventGroupCount(
+  KHE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_EVENT_GROUP KheSplitEventsConstraintEventGroup(
+  KHE_SPLIT_EVENTS_CONSTRAINT c, int i);
+}
+All the events are linked to the constraint, unlike for
+assign time constraints.
+@End @SubSection
+
+@SubSection
+  @Title { Distribute split events constraints }
+@Begin
+@LP
+A distribute split events constraint is created and added to an instance by
+@ID @C {
+bool KheDistributeSplitEventsConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  int duration, int minimum, int maximum,
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT *c);
+}
+in the usual way.  Most of the attributes may be retrieved by upcasting
+to @C { KHE_CONSTRAINT } and calling the relevant operation on that
+type.  The exceptions are
+# TIME_GROUP KheDistributeSplitEventsConstraintTimeGroup(
+#   KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+@ID @C {
+int KheDistributeSplitEventsConstraintDuration(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+int KheDistributeSplitEventsConstraintMinimum(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+int KheDistributeSplitEventsConstraintMaximum(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+}
+which return the various attributes specific to distribute split events
+constraints.
+@PP
+The points of application are events, and, as for split events
+constraints, these may be added and visited individually:
+@ID @C {
+void KheDistributeSplitEventsConstraintAddEvent(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c, KHE_EVENT e);
+int KheDistributeSplitEventsConstraintEventCount(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_EVENT KheDistributeSplitEventsConstraintEvent(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c, int i);
+}
+and also in groups:
+@ID @C {
+void KheDistributeSplitEventsConstraintAddEventGroup(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c, KHE_EVENT_GROUP eg);
+int KheDistributeSplitEventsConstraintEventGroupCount(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c);
+KHE_EVENT_GROUP KheDistributeSplitEventsConstraintEventGroup(
+  KHE_DISTRIBUTE_SPLIT_EVENTS_CONSTRAINT c, int i);
+}
+All the events are linked to the constraint.
+@End @SubSection
+
+@SubSection
+  @Title { Prefer resources constraints }
+@Begin
+@LP
+A prefer resources constraint is created and added to an instance by
+@ID @C {
+bool KhePreferResourcesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  char *role, KHE_PREFER_RESOURCES_CONSTRAINT *c);
+}
+As usual, the only possible reason for returning @C { false } is that
+@C { id } is non-@C { NULL } and there is already a constraint in
+@C { ins } with this @C { id }.  Most of the attributes may be
+retrieved by upcasting to @C { KHE_CONSTRAINT } and calling the
+relevant operations on that type; the exception is @C { role },
+which is retrieved by calling
+@ID { 0.98 1.0 } @Scale @C {
+char *KhePreferResourcesConstraintRole(KHE_PREFER_RESOURCES_CONSTRAINT c);
+}
+since it is specific to this constraint type.
+@PP
+In the XML specification, the resources that make up the domain of the
+constraint may be added in groups or individually.  To add them in
+groups, and to visit the groups, call
+@ID @C {
+bool KhePreferResourcesConstraintAddResourceGroup(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KhePreferResourcesConstraintResourceGroupCount(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KhePreferResourcesConstraintResourceGroup(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, int i);
+}
+The @C { bool } result type of
+@C { KhePreferResourcesConstraintAddResourceGroup } (and other
+functions below) is explained at the end of this section.  To add and
+visit resources individually, call
+@ID @C {
+bool KhePreferResourcesConstraintAddResource(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, KHE_RESOURCE r);
+int KhePreferResourcesConstraintResourceCount(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_RESOURCE KhePreferResourcesConstraintResource(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, int i);
+}
+After the instance is complete, but not before, function
+@ID @C {
+KHE_RESOURCE_GROUP KhePreferResourcesConstraintDomain(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+}
+returns the domain of @C { c } as a single resource group.  If exactly
+one resource group or one resource was added, this resource group will
+be that resource group or the automatically created singleton resource
+group for that resource; otherwise it will be created by taking the
+union of everything added.  This resource group may be used like any
+other, except for a problem in one special case:  when no resource
+groups or resources are added, the domain is not only an empty resource
+group but also has a @C { NULL } resource type.
+@PP
+The points of application of prefer resources constraints are
+event resources, and they are handled in the same way as for
+assign resource constraints.  That is, one can load the event
+resources directly by having a @C { NULL } value for @C { role }
+and calling
+@ID @C {
+bool KhePreferResourcesConstraintAddEventResource(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, KHE_EVENT_RESOURCE er);
+int KhePreferResourcesConstraintEventResourceCount(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_EVENT_RESOURCE KhePreferResourcesConstraintEventResource(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, int i);
+}
+or load them indirectly by loading events:
+@ID @C {
+bool KhePreferResourcesConstraintAddEvent(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, KHE_EVENT e);
+int KhePreferResourcesConstraintEventCount(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_EVENT KhePreferResourcesConstraintEvent(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, int i);
+}
+and event groups:
+@ID @C {
+bool KhePreferResourcesConstraintAddEventGroup(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, KHE_EVENT_GROUP eg,
+  KHE_EVENT *problem_event);
+int KhePreferResourcesConstraintEventGroupCount(
+  KHE_PREFER_RESOURCES_CONSTRAINT c);
+KHE_EVENT_GROUP KhePreferResourcesConstraintEventGroup(
+  KHE_PREFER_RESOURCES_CONSTRAINT c, int i);
+}
+When @C { KhePreferResourcesConstraintAddEventGroup } returns
+@C { false }, @C { problem_event } is set to the first event
+that caused the problem.  The rules for skipping inappropriate
+events are as for assign resource constraints.
+@PP
+The resources, resource groups, and event resources of a prefer
+resources constraint all have a resource type attribute.  All
+these resources types must be equal.  This is why the operations
+above for adding a resource, resource group, event resource, event,
+or event group all have a @C { bool } result type:  they all return
+@C { false } and add nothing if the operation would add an entity
+with a different resource type from something added previously.
+@End @SubSection
+
+@SubSection
+  @Title { Prefer times constraints }
+  @Tag { prefer_times_constraints }
+@Begin
+@LP
+A prefer times constraint is created and added to an instance by
+@ID @C {
+bool KhePreferTimesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  int duration, KHE_PREFER_TIMES_CONSTRAINT *c);
+}
+As usual, the only possible reason for returning @C { false } is that
+@C { id } is non-@C { NULL } and there is already a constraint in
+@C { ins } with this @C { id }.  A duration is optional; to not give
+one, use the special value @C { KHE_NO_DURATION }, a synonym for 0.
+@PP
+Most of the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operations on that
+type; the exception is @C { duration }, which is retrieved by calling
+@ID { 0.98 1.0 } @Scale @C {
+int KhePreferTimesConstraintDuration(KHE_PREFER_TIMES_CONSTRAINT c);
+}
+since it is specific to this constraint type.
+@PP
+In the XML specification, the times that make up the domain of the
+constraint may be added in groups or individually.  To add them in
+groups, and to visit the groups, call
+@ID @C {
+void KhePreferTimesConstraintAddTimeGroup(
+  KHE_PREFER_TIMES_CONSTRAINT c, KHE_TIME_GROUP tg);
+int KhePreferTimesConstraintTimeGroupCount(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+KHE_TIME_GROUP KhePreferTimesConstraintTimeGroup(
+  KHE_PREFER_TIMES_CONSTRAINT c, int i);
+}
+To add and visit times individually, call
+@ID @C {
+void KhePreferTimesConstraintAddTime(
+  KHE_PREFER_TIMES_CONSTRAINT c, KHE_TIME t);
+int KhePreferTimesConstraintTimeCount(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+KHE_TIME KhePreferTimesConstraintTime(
+  KHE_PREFER_TIMES_CONSTRAINT c, int i);
+}
+After the instance is complete, but not before, function
+@ID @C {
+KHE_TIME_GROUP KhePreferTimesConstraintDomain(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+}
+returns the domain of @C { c } as a single time group.  If exactly
+one time group or one time was added, this time group will be that
+time group or the automatically created singleton time group for
+that time; otherwise it will be created by taking the union of
+everything added.  This time group may be used like any other.
+@PP
+The points of application of prefer times constraints are
+events, and they can be added and visited individually:
+@ID @C {
+void KhePreferTimesConstraintAddEvent(
+  KHE_PREFER_TIMES_CONSTRAINT c, KHE_EVENT e);
+int KhePreferTimesConstraintEventCount(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+KHE_EVENT KhePreferTimesConstraintEvent(
+  KHE_PREFER_TIMES_CONSTRAINT c, int i);
+}
+or in groups:
+@ID @C {
+void KhePreferTimesConstraintAddEventGroup(
+  KHE_PREFER_TIMES_CONSTRAINT c, KHE_EVENT_GROUP eg);
+int KhePreferTimesConstraintEventGroupCount(
+  KHE_PREFER_TIMES_CONSTRAINT c);
+KHE_EVENT_GROUP KhePreferTimesConstraintEventGroup(
+  KHE_PREFER_TIMES_CONSTRAINT c, int i);
+}
+The XML specification states that prefer times constraints skip
+events with preassigned times, whether those events are mentioned
+or not.  Accordingly, although such events are added to constraints
+by the calls just given, the reverse links, from the events to the
+constraint, are added only to events that do not have preassigned
+times.
+@End @SubSection
+
+@SubSection
+  @Title { Avoid split assignments constraints }
+  @Tag { avoid_split_assts }
+@Begin
+@LP
+An avoid split assignments constraint is created and added to an instance by
+@ID @C {
+bool KheAvoidSplitAssignmentsConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  char *role, KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT *c);
+}
+As usual, the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation
+on that type, except that to retrieve the @C { role } attribute
+the call is
+@ID @C {
+char *KheAvoidSplitAssignmentsConstraintRole(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c);
+}
+The @C { role } attribute may be @C { NULL }.
+@PP
+The handling of the points of application of an avoid split assignments
+constraint is somewhat complex, because one point of application is
+fundamentally a set of event resources (the XML file identifies each
+set by an event group and a role), so that the points of application
+overall form a set of sets of event resources.  We will first explain
+how to add these points of application when reading an XML file, and
+then how to do it directly.
+@PP
+When reading an XML file, a non-@C { NULL } @C { role } is passed,
+and then each event group is added in the usual way.  To add an
+event group and to visit the event groups, the calls are
+@ID @C {
+bool KheAvoidSplitAssignmentsConstraintAddEventGroup(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c, KHE_EVENT_GROUP eg,
+  KHE_EVENT *problem_event);
+int KheAvoidSplitAssignmentsConstraintEventGroupCount(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c);
+KHE_EVENT_GROUP KheAvoidSplitAssignmentsConstraintEventGroup(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c, int i);
+}
+Behind the scenes, the appropriate event resources are retrieved
+from the events of each event group and added automatically, so
+that nothing further needs to be done.  A @C { false } result
+returned by @C { KheAvoidSplitAssignmentsConstraintAddEventGroup }
+indicates that one of the events of @C { eg } does not contain
+an event resource with the required non-@C { NULL } @C { role }.
+In this case, @C { *problem_event } will contain the first event
+of @C { eg } with this problem on return.
+@PP
+When the instance is not derived from an XML file it may be more
+convenient to add event resources directly.  For the sake of this
+case, @C { role } may be @C { NULL }, and the @C { eg } parameter
+of @C { KheAvoidSplitAssignmentsConstraintAddEventGroup } may
+also be @C { NULL }.  If either is @C { NULL }, event resources
+are not added automatically.
+@PP
+To add event resources manually, and to visit event resources (whether
+added automatically or manually), the calls are
+@ID @C {
+void KheAvoidSplitAssignmentsConstraintAddEventResource(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c, int eg_index,
+  KHE_EVENT_RESOURCE er);
+int KheAvoidSplitAssignmentsConstraintEventResourceCount(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c, int eg_index);
+KHE_EVENT_RESOURCE KheAvoidSplitAssignmentsConstraintEventResource(
+  KHE_AVOID_SPLIT_ASSIGNMENTS_CONSTRAINT c, int eg_index, int er_index);
+}
+These functions add an event resource to the @C { eg_index }'th point
+of application of @C { c }, return the number of event resources at
+that point, and return the @C { er_index }'th event resource at that
+point.  They define the required set of sets of event resources.
+@PP
+Usually, constraints are added to the instance and to the entities
+they apply to.  For avoid split assignments constraints this would
+mean adding the constraint to the instance and the event groups.
+This is done, but, for convenience, each avoid split assignments
+constaint is also added to each of its event resources.
+@End @SubSection
+
+@SubSection
+    @Title { Spread events constraints }
+    @Tag { spread_events }
+@Begin
+@LP
+A spread events constraint is created and added to an instance by
+@ID @C {
+bool KheSpreadEventsConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_TIME_SPREAD ts, KHE_SPREAD_EVENTS_CONSTRAINT *c);
+}
+where type @C { KHE_TIME_SPREAD } is explained below.  Most of the attributes
+may be retrieved by upcasting to @C { KHE_CONSTRAINT } and calling the
+relevant operation on that type.  The exception is
+@ID @C {
+KHE_TIME_SPREAD KheSpreadEventsConstraintTimeSpread(
+  KHE_SPREAD_EVENTS_CONSTRAINT c);
+}
+which returns the time spread.
+Type @C { KHE_TIME_SPREAD } is an object which describes the time
+groups that the constraint requires the event group to spread through,
+and the limits on the number of events that may touch each time group.
+Time spread objects are immutable, and may be shared among any number
+of constraints.  To create a time spread object, call
+@ID @C {
+KHE_TIME_SPREAD KheTimeSpreadMake(KHE_INSTANCE ins);
+}
+Initially this has no time groups.  To add them, call
+@ID @C {
+void KheTimeSpreadAddLimitedTimeGroup(KHE_TIME_SPREAD ts,
+  KHE_LIMITED_TIME_GROUP ltg);
+}
+repeatedly.  To retrieve the limited time groups of a time spread, call
+@ID @C {
+int KheTimeSpreadLimitedTimeGroupCount(KHE_TIME_SPREAD lts);
+KHE_LIMITED_TIME_GROUP KheTimeSpreadLimitedTimeGroup(
+  KHE_TIME_SPREAD lts, int i);
+}
+An object of type @C { KHE_LIMITED_TIME_GROUP } contains what
+one element of a time spread needs:  a time group plus a minimum
+and maximum number of events.  It may be created by calling
+@ID @C {
+KHE_LIMITED_TIME_GROUP KheLimitedTimeGroupMake(KHE_TIME_GROUP tg,
+  int minimum, int maximum);
+}
+and functions
+@ID @C {
+KHE_TIME_GROUP KheLimitedTimeGroupTimeGroup(KHE_LIMITED_TIME_GROUP ltg);
+int KheLimitedTimeGroupMinimum(KHE_LIMITED_TIME_GROUP ltg);
+int KheLimitedTimeGroupMaximum(KHE_LIMITED_TIME_GROUP ltg);
+}
+retrieve its attributes.
+@PP
+Two other operations on time spreads, available only after the instance
+is complete, provide information that may be useful to solvers:
+@ID @C {
+bool KheTimeSpreadTimeGroupsDisjoint(KHE_TIME_SPREAD ts);
+bool KheTimeSpreadCoversWholeCycle(KHE_TIME_SPREAD ts);
+}
+@C { KheTimeSpreadTimeGroupsDisjoint } returns @C { true } when the
+time groups of @C { ts }'s limited time groups are pairwise disjoint.
+@C { KheTimeSpreadCoversWholeCycle } returns @C { true } when every
+time of the cycle appears in at least one of the time groups of
+@C { ts }'s limited time groups.
+@PP
+Spread events apply to event groups; the operations for adding and
+visiting them are
+@ID @C {
+void KheSpreadEventsConstraintAddEventGroup(
+  KHE_SPREAD_EVENTS_CONSTRAINT c, KHE_EVENT_GROUP eg);
+int KheSpreadEventsConstraintEventGroupCount(
+  KHE_SPREAD_EVENTS_CONSTRAINT c);
+KHE_EVENT_GROUP KheSpreadEventsConstraintEventGroup(
+  KHE_SPREAD_EVENTS_CONSTRAINT c, int i);
+}
+as usual.
+@End @SubSection
+
+@SubSection
+  @Title { Link events constraints }
+  @Tag { link_events }
+@Begin
+@LP
+A link events constraint is created and added to an instance by
+@ID @C {
+bool KheLinkEventsConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_LINK_EVENTS_CONSTRAINT *c);
+}
+Most of the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation
+on that type.
+@PP
+One point of application of a link events constraint is an event group;
+one constraint may contain any number of these.  The operations for
+adding them are
+@ID { 0.98 1.0 } @Scale @C {
+void KheLinkEventsConstraintAddEventGroup(KHE_LINK_EVENTS_CONSTRAINT c,
+  KHE_EVENT_GROUP eg);
+int KheLinkEventsConstraintEventGroupCount(KHE_LINK_EVENTS_CONSTRAINT c);
+KHE_EVENT_GROUP KheLinkEventsConstraintEventGroup(
+  KHE_LINK_EVENTS_CONSTRAINT c, int i);
+}
+as usual.
+@End @SubSection
+
+@SubSection
+  @Title { Avoid clashes constraints }
+@Begin
+@LP
+An avoid clashes constraint is created and added to an instance by
+@ID @C {
+bool KheAvoidClashesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_AVOID_CLASHES_CONSTRAINT *c);
+}
+as usual.  The attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation
+on that type.
+@PP
+Avoid clashes constraints apply to resource groups and resources.
+To add and visit resource groups, the operations are
+@ID @C {
+void KheAvoidClashesConstraintAddResourceGroup(
+  KHE_AVOID_CLASHES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheAvoidClashesConstraintResourceGroupCount(
+  KHE_AVOID_CLASHES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheAvoidClashesConstraintResourceGroup(
+  KHE_AVOID_CLASHES_CONSTRAINT c, int i);
+}
+while to add and visit resources the operations are
+@ID @C {
+void KheAvoidClashesConstraintAddResource(
+  KHE_AVOID_CLASHES_CONSTRAINT c, KHE_RESOURCE r);
+int KheAvoidClashesConstraintResourceCount(
+  KHE_AVOID_CLASHES_CONSTRAINT c);
+KHE_RESOURCE KheAvoidClashesConstraintResource(
+  KHE_AVOID_CLASHES_CONSTRAINT c, int i);
+}
+These all work in the usual way.
+@End @SubSection
+
+@SubSection
+  @Title { Avoid unavailable times constraints }
+@Begin
+@LP
+An avoid unavailable times constraint is created and added to an instance by
+@ID @C {
+bool KheAvoidUnavailableTimesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT *c);
+}
+in the usual way.  To add the resource groups and resources defining
+the points of application, and to visit them, call
+@ID @C {
+void KheAvoidUnavailableTimesConstraintAddResourceGroup(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheAvoidUnavailableTimesConstraintResourceGroupCount(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheAvoidUnavailableTimesConstraintResourceGroup(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, int i);
+}
+for resource groups and
+@ID @C {
+void KheAvoidUnavailableTimesConstraintAddResource(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, KHE_RESOURCE r);
+int KheAvoidUnavailableTimesConstraintResourceCount(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+KHE_RESOURCE KheAvoidUnavailableTimesConstraintResource(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, int i);
+}
+for individual resources.  The XML format allows the unavailable times
+themselves to be defined by both time groups and times.  To add
+time groups and visit them, call
+@ID @C {
+void KheAvoidUnavailableTimesConstraintAddTimeGroup(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, KHE_TIME_GROUP tg);
+int KheAvoidUnavailableTimesConstraintTimeGroupCount(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+KHE_TIME_GROUP KheAvoidUnavailableTimesConstraintTimeGroup(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, int i);
+}
+To add individual times and visit them, call
+@ID @C {
+void KheAvoidUnavailableTimesConstraintAddTime(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, KHE_TIME t);
+int KheAvoidUnavailableTimesConstraintTimeCount(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+KHE_TIME KheAvoidUnavailableTimesConstraintTime(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c, int i);
+}
+These functions all work in the usual way.  Function
+@ID @C {
+KHE_TIME_GROUP KheAvoidUnavailableTimesConstraintDomain(
+  KHE_AVOID_UNAVAILABLE_TIMES_CONSTRAINT c);
+}
+returns a time group containing the union of the time groups and
+times of @C { c }.  It may be called only after construction of
+the instance is complete.
+@End @SubSection
+
+@SubSection
+  @Title { Limit idle times constraints }
+@Begin
+@LP
+A limit idle times constraint is created and added to an instance by
+@ID @C {
+bool KheLimitIdleTimesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  int minimum, int maximum, KHE_LIMIT_IDLE_TIMES_CONSTRAINT *c);
+}
+Most of the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation on that type;
+the exceptions are
+@ID { 0.98 1.0 } @Scale @C {
+int KheLimitIdleTimesConstraintMinimum(KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+int KheLimitIdleTimesConstraintMaximum(KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+}
+which are specific to this kind of constraint.
+@PP
+A limit idle times constraint requires time groups, which are
+added and visited by calling
+@ID @C {
+void KheLimitIdleTimesConstraintAddTimeGroup(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, KHE_TIME_GROUP tg);
+int KheLimitIdleTimesConstraintTimeGroupCount(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+KHE_TIME_GROUP KheLimitIdleTimesConstraintTimeGroup(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, int i);
+}
+It also requires the resource groups and resources which define the
+points of application of the constraint.  Resource groups are added
+and visited by calling
+@ID @C {
+void KheLimitIdleTimesConstraintAddResourceGroup(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheLimitIdleTimesConstraintResourceGroupCount(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheLimitIdleTimesConstraintResourceGroup(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, int i);
+}
+and individual resources are added and visited by calling
+@ID @C {
+void KheLimitIdleTimesConstraintAddResource(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, KHE_RESOURCE r);
+int KheLimitIdleTimesConstraintResourceCount(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c);
+KHE_RESOURCE KheLimitIdleTimesConstraintResource(
+  KHE_LIMIT_IDLE_TIMES_CONSTRAINT c, int i);
+}
+in the usual way.
+@End @SubSection
+
+@SubSection
+  @Title { Cluster busy times constraints }
+@Begin
+@LP
+A cluster busy times constraint is created and added to an instance by
+@ID @C {
+bool KheClusterBusyTimesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  int minimum, int maximum, KHE_CLUSTER_BUSY_TIMES_CONSTRAINT *c);
+}
+Most of the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation on that type;
+the exceptions are
+@ID @C {
+int KheClusterBusyTimesConstraintMinimum(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+int KheClusterBusyTimesConstraintMaximum(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+}
+which are specific to this kind of constraint.
+@PP
+A cluster busy times constraint requires time groups, which are
+added and visited by
+@ID @C {
+void KheClusterBusyTimesConstraintAddTimeGroup(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, KHE_TIME_GROUP tg);
+int KheClusterBusyTimesConstraintTimeGroupCount(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+KHE_TIME_GROUP KheClusterBusyTimesConstraintTimeGroup(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, int i);
+}
+It also requires the resource groups and resources which define the
+points of application of the constraint.  Resource groups are added
+and visited by calling
+@ID @C {
+void KheClusterBusyTimesConstraintAddResourceGroup(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheClusterBusyTimesConstraintResourceGroupCount(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheClusterBusyTimesConstraintResourceGroup(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, int i);
+}
+and individual resources are added and visited by calling
+@ID @C {
+void KheClusterBusyTimesConstraintAddResource(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, KHE_RESOURCE r);
+int KheClusterBusyTimesConstraintResourceCount(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c);
+KHE_RESOURCE KheClusterBusyTimesConstraintResource(
+  KHE_CLUSTER_BUSY_TIMES_CONSTRAINT c, int i);
+}
+in the usual way.
+@End @SubSection
+
+@SubSection
+  @Title { Limit busy times constraints }
+@Begin
+@LP
+A limit busy times constraint is created and added to an instance by
+@ID @C {
+bool KheLimitBusyTimesConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_RESOURCE applies_to, int minimum, int maximum,
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT *c);
+}
+Most of these attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation on that type.
+The exceptions are
+@ID @C {
+int KheLimitBusyTimesConstraintMinimum(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+int KheLimitBusyTimesConstraintMaximum(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+}
+which are specific to this kind of constraint.
+@PP
+A limit busy times constraint requires time groups, which are
+added and visited by
+@ID @C {
+void KheLimitBusyTimesConstraintAddTimeGroup(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, KHE_TIME_GROUP tg);
+int KheLimitBusyTimesConstraintTimeGroupCount(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+KHE_TIME_GROUP KheLimitBusyTimesConstraintTimeGroup(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, int i);
+}
+repeatedly.  It also requires the resource groups and resources which
+define the points of application of the constraint.  Resource groups
+are added and visited by calling
+@ID @C {
+void KheLimitBusyTimesConstraintAddResourceGroup(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheLimitBusyTimesConstraintResourceGroupCount(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheLimitBusyTimesConstraintResourceGroup(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, int i);
+}
+and individual resources are added and visited by calling
+@ID @C {
+void KheLimitBusyTimesConstraintAddResource(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, KHE_RESOURCE r);
+int KheLimitBusyTimesConstraintResourceCount(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c);
+KHE_RESOURCE KheLimitBusyTimesConstraintResource(
+  KHE_LIMIT_BUSY_TIMES_CONSTRAINT c, int i);
+}
+in the usual way.
+@End @SubSection
+
+@SubSection
+  @Title { Limit workload constraints }
+@Begin
+@LP
+A limit workload constraint is created and added to an instance by
+@ID @C {
+bool KheLimitWorkloadConstraintMake(KHE_INSTANCE ins, char *id,
+  char *name, bool required, int weight, KHE_COST_FUNCTION cf,
+  KHE_RESOURCE applies_to, int minimum, int maximum,
+  KHE_LIMIT_WORKLOAD_CONSTRAINT *c);
+}
+Most of the attributes may be retrieved by upcasting to
+@C { KHE_CONSTRAINT } and calling the relevant operation on that type.
+The exceptions are
+@ID @C {
+int KheLimitWorkloadConstraintMinimum(KHE_LIMIT_WORKLOAD_CONSTRAINT c);
+int KheLimitWorkloadConstraintMaximum(KHE_LIMIT_WORKLOAD_CONSTRAINT c);
+}
+which return the resource that @C { c } applies to, the minimum, and
+the maximum.
+@PP
+Limit workload constraints do not require time groups, because they
+always apply to the entire cycle.  As usual, they require the resource
+groups and resources which define the points of application of the
+constraint.  Resource groups are added and visited by calling
+@ID @C {
+void KheLimitWorkloadConstraintAddResourceGroup(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c, KHE_RESOURCE_GROUP rg);
+int KheLimitWorkloadConstraintResourceGroupCount(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c);
+KHE_RESOURCE_GROUP KheLimitWorkloadConstraintResourceGroup(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c, int i);
+}
+and individual resources are added and visited by calling
+@ID @C {
+void KheLimitWorkloadConstraintAddResource(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c, KHE_RESOURCE r);
+int KheLimitWorkloadConstraintResourceCount(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c);
+KHE_RESOURCE KheLimitWorkloadConstraintResource(
+  KHE_LIMIT_WORKLOAD_CONSTRAINT c, int i);
+}
+in the usual way.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@EndSections
+@End @Chapter

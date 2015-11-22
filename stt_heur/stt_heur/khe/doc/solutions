@@ -1,0 +1,2262 @@
+@Chapter
+    @Title { Solutions }
+    @Tag { solutions }
+@Begin
+@LP
+This chapter describes type @C { KHE_SOLN }, representing one solution.
+@BeginSections
+
+@Section
+   @Title { Overview }
+   @Tag { solutions.overview }
+@Begin
+@LP
+Instances are immutable after creation, and operations that change
+instances only assemble them, they do not disassemble them.  In
+contrast, each operation that changes a solution is paired with
+one that changes it back.  This supports not just the assembly of
+a fixed solution, such as one read from a file, but also the
+changes and testing of alternatives needed when solving an instance.
+@PP
+A solution is represented by an object of type @C { KHE_SOLN }
+(`solution' is always abbreviated to `soln' in the KHE interface).
+Any number of solutions may exist and be operated on simultaneously.
+Within each solution are @C { KHE_MEET } objects representing
+meets (also called split events or sub-events), each of which may
+be assigned a time, and @C { KHE_TASK } objects representing the
+resource elements of meets, each of which may be assigned a resource.
+@PP
+Although most meets are derived from events and most tasks are
+derived from event resources, these derivations are optional.
+Only meets and tasks that possess such derivations are considered
+to be part of the solution to the original instance, but other
+meets and tasks may be present within a solution object to help
+the solution process along.  Several meets may be derived from
+a single event; these are the split events or sub-events of that
+event in the solution.
+@PP
+At all times, the solution (however incomplete it may be) has a
+definite numerical @I { cost }, a 64-bit integer measuring the
+badness of the solution which is always available via function
+@C { KheSolnCost } (Chapter {@NumberOf monitoring}).  It may be
+used to guide the search for good solutions.
+@PP
+A solution must obey a condition called the @I { solution invariant }
+throughout its lifetime; this is an unbreakable constraint.  A
+precise statement of the solution invariant appears in
+Section {@NumberOf solutions.invariant}.  Every operation that changes
+a solution in a way that could violate the invariant is implemented
+with two functions, which look generically like this:
+@ID @C {
+bool KheOperationCheck(...);
+bool KheOperation(...);
+}
+The two functions accept the same inputs and return the same value in
+a given solution state.  The first returns @C { true } if the change
+would not violate the invariant, but itself changes nothing.  The
+second also returns @C { true } if the change would not violate the
+invariant, but in that case it also makes the change.  It changes
+nothing if the change would violate the invariant.
+@PP
+The relationship between the solution invariant and the constraints
+of the original instance is rather subtle.  Should a constraint be
+incorporated into the invariant, so that no solution (not even a
+partial solution) will ever violate it?  KHE leaves this question to
+the user.  Some operations do incorporate constraints into the
+solution invariant, but those operations are all optional.
+@PP
+There are three levels of operations.  At the lowest level are
+@I { basic operations }, which carry out basic queries and changes
+to a solution, such as assigning or deassigning the time of a
+meet.  Above them are @I { helper functions }, which
+implement commonly needed sequences of basic operations, such as
+swaps.  Some helper functions utilize optimizations that make them
+significantly more efficient than the equivalent sequences of basic
+operations.
+@PP
+At the highest level are @I { solvers }, which make large-scale changes
+to solutions.  A complete algorithm for solving an instance is a solver,
+but so are operations with more modest scope, such as assigning times
+to the meetings of one form, assigning rooms, and so on.
+@PP
+KHE supplies several solvers, documented in later chapters, and the
+user is free to write others.  As a matter of good design, solvers
+should not have behind-the-scenes access to KHE's data structures;
+they should use only the operations described in this guide and made
+available by header file @F { khe.h }.  The solvers supplied by KHE
+follow this rule.
+@End @Section
+
+@Section
+    @Title { Solution objects }
+    @Tag { solutions.objects }
+@Begin
+@LP
+To create a solution for a given instance, initially with no meets
+or tasks, call
+@ID @C {
+KHE_SOLN KheSolnMake(KHE_INSTANCE ins, KHE_SOLN_GROUP soln_group);
+}
+@C { KheInstanceMakeEnd } must be complete before @C { KheSolnMake } is
+called.
+@PP
+Parameter @C { soln_group } is optional; if non-@C { NULL },
+the solution is added to @C { soln_group }, after checking that
+@C { ins } and @C { soln_group } lie in the same archive.  It is
+also possible to pass @C { NULL } for the solution group initially,
+and call @C { KheSolnGroupAddSolution }
+(Section {@NumberOf archives.soln_groups}) later.  Parallel calls
+which change a solution group are not thread-safe.
+@PP
+Function
+@ID @C {
+void KheSolnDelete(KHE_SOLN soln);
+}
+deletes @C { soln } and everything in it, and removes it from its
+enclosing solution group, if any.
+@PP
+Solution objects and their components have back pointers in the usual
+way.  These may be changed at any time.  To set and retrieve the back
+pointer of a solution object, call
+@ID @C {
+void KheSolnSetBack(KHE_SOLN soln, void *back);
+void *KheSolnBack(KHE_SOLN soln);
+}
+as usual.  Functions
+@ID @C {
+KHE_INSTANCE KheSolnInstance(KHE_SOLN soln);
+KHE_SOLN_GROUP KheSolnSolnGroup(KHE_SOLN soln);
+}
+return the the other attributes of a solution.
+@PP
+Another way to create a solution is
+@ID @C {
+KHE_SOLN KheSolnCopy(KHE_SOLN soln);
+}
+which returns a copy of @C { soln }.  The copy is exact except that it
+does not lie in any solution group.  Immutable elements, such as anything
+from the instance, and time, resource, and event groups created within
+the solution, are shared, as are back pointers.
+@PP
+Copying is useful when forking a solution process part-way through:
+the original solution may continue down one thread, and the copy,
+which is quite independent, may be given to the other thread.  Care
+is needed in one respect, however:  it is not safe to make two copies
+of one solution simultaneously, even though the original solution is
+unaffected by copying it.  This is because the copy algorithm uses
+temporary forwarding pointers in the objects of the solution.
+@PP
+Even semantically unimportant things, such as the order that items
+appear in sets, are carefully preserved by @C { KheSolnCopy }.  If
+the same solution algorithm is run on the original and the copy, and
+it does not depend on anything peculiar such as the memory addresses
+of its objects, it should produce the same solution.  The author has
+verified this for one complex solver, namely @C { KheGeneralSolve }
+from Section {@NumberOf general_solvers.general}.  If diversity is
+required, the preferred method of getting it is to change the copy's
+diversifier (Section {@NumberOf solutions.diversification}).
+@PP
+The specification of @C { qsort } states that when two elements
+compare equal, their order in the final result is undefined.  So
+it seems best to try to eliminate all such cases, and the author
+has conscientiously attempted to do this for the comparison
+functions packaged with KHE.  Index numbers, returned by functions
+such as @C { KheMeetIndex } and @C { KheTaskIndexInSoln }, are useful
+for breaking ties arbitrarily but consistently as a last resort.
+@PP
+To visit the meets of a solution, in an unspecified order, call
+@ID @C {
+int KheSolnMeetCount(KHE_SOLN soln);
+KHE_MEET KheSolnMeet(KHE_SOLN soln, int i);
+}
+The meets visited include the @I { cycle meets } described in
+Section {@NumberOf solutions.meets.assignment}.  To visit the
+meets of a solution derived from a given event, call
+@ID @C {
+int KheEventMeetCount(KHE_SOLN soln, KHE_EVENT e);
+KHE_MEET KheEventMeet(KHE_SOLN soln, KHE_EVENT e, int i);
+}
+The first returns the number of meets derived from @C { e }
+(possibly 0), and the second returns the @C { i }'th of these
+meets, in an unspecified order.
+@PP
+To visit the tasks of a solution, in an unspecified order, call
+@ID @C {
+int KheSolnTaskCount(KHE_SOLN soln);
+KHE_TASK KheSolnTask(KHE_SOLN soln, int i);
+}
+To visit the tasks derived from a given event resource, call
+@ID @C {
+int KheEventResourceTaskCount(KHE_SOLN soln, KHE_EVENT_RESOURCE er);
+KHE_TASK KheEventResourceTask(KHE_SOLN soln, KHE_EVENT_RESOURCE er,
+  int i);
+}
+There is one for each meet derived from the event containing @C { er }.
+@PP
+A solution may also contain @I nodes and @I { taskings }, as explained
+in Chapter {@NumberOf extras}.  To visit the nodes in an unspecified
+order, call
+@ID @C {
+int KheSolnNodeCount(KHE_SOLN soln);
+KHE_NODE KheSolnNode(KHE_SOLN soln, int i);
+}
+To visit the taskings, call
+@ID @C {
+int KheSolnTaskingCount(KHE_SOLN soln);
+KHE_TASKING KheSolnTasking(KHE_SOLN soln, int i);
+}
+in the usual way.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheSolnDebug(KHE_SOLN soln, int verbosity, int indent, FILE *fp);
+}
+prints information about the current solution onto file @C { fp }
+with the given verbosity and indent, as described for debug functions
+in general in Section {@NumberOf intro.common}.  Verbosity 1 prints
+just the instance name and current cost, verbosity 2 adds a breakdown
+of the current cost by constraint type (only constraint types with
+non-zero cost are printed), verbosity 3 adds debug prints of the
+solution's defects (Section {@NumberOf monitoring_monitors}), and
+verbosity 4 prints further details.
+@End @Section
+
+@Section
+   @Title { Complete representation and preassignment conversion }
+   @Tag { solutions.complete }
+@Begin
+@LP
+A solution is a @I { complete representation } when
+it satisfies the following two conditions:
+@BulletList
+
+@LI {
+For each event @C { e } of the solution's instance, the total
+duration of the meets derived from @C { e } is
+equal to the duration of @C { e };
+}
+
+@LI {
+For each event resource @C { er } of the solution's instance, each
+meet derived from the event containing @C { er } contains a task
+derived from @C { er }.
+}
+
+@EndList
+Being a complete representation does not rule out the presence of
+additional meets or tasks.  And it has nothing to do with being a
+complete solution, in the sense of assigning a time to every meet
+and a resource to every task.
+@PP
+KHE does not require a solution to be a complete representation,
+since that would be too restrictive when building and modifying
+solutions.  However, the cost it reports for a solution is correct
+only when that solution is a complete representation.  This is
+because, behind the scenes, KHE needs to be able to see a meet
+with no assigned time in order for it to realize that an
+assign time constraint is being violated, and similarly for the
+other constraints.
+@PP
+There is a standard procedure, part of the XML specification, for
+converting a solution into a complete representation:
+@NumberedList
+
+@LI {
+For each event @C { e } of the solution's instance, if there
+are no meets derived from @C { e }, then insert one meet whose
+duration is the duration of @C { e }, and whose assigned time
+is the preassigned time of @C { e }, or is absent if @C { e }
+has no preassigned time.  Initially, this meet contains no
+tasks, but that may be changed by the third rule.
+}
+
+@LI {
+If now there is an event @C { e } such that the total duration
+of the meets derived from @C { e } is not equal to the duration
+of @C { e }, then that is an error and the XML file is rejected.
+}
+
+@LI {
+For each event resource @C { er } of each event @C { e } of the
+instance, for each meet derived from @C { e }, if that meet does
+not contain a task derived from @C { er }, then add one.  Its
+assigned resource is the preassigned resource of @C { er } if there
+is one, or is absent if @C { er } has no preassigned resource.
+}
+
+@EndList
+This procedure, minus the conversions from preassignments to
+assignments, is implemented by
+@ID @C {
+bool KheSolnMakeCompleteRepresentation(KHE_SOLN soln,
+  KHE_EVENT *problem_event);
+}
+For each event @C { e }, it finds the total duration of all meets
+derived from @C { e }.  If that exceeds the duration of @C { e }
+it returns @C { false } with @C { *problem_event } set to @C { e }.
+If it is less than the duration of @C { e }, then one meet derived
+from @C { e } is added whose duration makes up the difference.  The
+domain of this meet has the usual default value, namely the preassigned
+time of @C { e } if there is one, or else the largest legal domain,
+@C { KheSolnPackingTimeDomain(soln) }
+(Section {@NumberOf solutions.meets.domains}).
+Then, within each meet derived from an event, whether just created
+or not, it adds one task for each event resource @C { er }
+not already represented by a task.  The domain of this task has
+the usual default value, namely the preassigned resource of
+@C { er } if there is one, or else the largest legal domain,
+@C { KheResourceTypeFullResourceGroup(rt) }, where @C { rt }
+is the resource type of @C { er }.
+@PP
+@C { KheSolnMakeCompleteRepresentation } has two uses.  The first is
+in @C { KheArchiveRead } (Section {@NumberOf archives.read}), which
+applies it to each solution it reads, as the XML specification requires,
+and then calls these two public functions to convert preassignments
+into assignments:
+@ID @C {
+void KheSolnAssignPreassignedTimes(KHE_SOLN soln, bool as_in_event);
+void KheSolnAssignPreassignedResources(KHE_SOLN soln,
+  KHE_RESOURCE_TYPE rt, bool as_in_event_resource);
+}
+@C { KheSolnAssignPreassignedTimes } assigns the obvious time to each
+preassigned unassigned meet.  @C { KheSolnAssignPreassignedResources }
+assigns the obvious resource to each preassigned unassigned task of
+type @C { rt } (any type if @C { rt } is @C { NULL }).  See
+@C { KheMeetIsPreassigned } (Section {@NumberOf solutions.meets.domains})
+and @C { KheTaskIsPreassigned } (Section {@NumberOf solutions.tasks.domains})
+for @C { as_in_event } and @C { as_in_event_resource }.  
+@C { KheSolnMakeCompleteRepresentation } sets both to @C { true }.
+@PP
+The second use for @C { KheSolnMakeCompleteRepresentation } is to
+build a solution from scratch, ready for solving.  The solution
+returned by @C { KheSolnMake } has no meets except the initial cycle
+meet and no tasks, and @C { KheSolnMakeCompleteRepresentation } is
+a very convenient way to add them.  When solving, it is usually called
+immediately after @C { KheSolnMake } and @C { KheSolnSplitCycleMeet }
+(Section {@NumberOf solutions.meets.cycle}).  The solution changes
+as solving proceeds, but it remains a complete representation
+throughout, except perhaps during brief reconstructions.  A call to
+@C { KheSolnAssignPreassignedResources } is also a good idea, since
+it does no harm and ensures that resource constraints involving
+preassigned resources will contribute to the cost of the solution as
+soon as the meets they are preassigned to are assigned times.  On the
+other hand, it may be better not to assign preassigned times at this
+point; Section {@NumberOf time_solvers.preassigned} has the alternatives.
+@End @Section
+
+@Section
+    @Title { Solution time, resource, and event groups }
+    @Tag { solutions.groups }
+@Begin
+@LP
+Time, resource, and event groups play an important part in solving.
+A solution algorithm needs to be able to construct its own groups,
+since those that happen to have been declared in the instance might
+not be enough.  (Conceivably, a solution algorithm could require its
+own times and resources as well, but that possibility is not currently
+supported.)  Accordingly, functions
+@ID @C {
+void KheSolnTimeGroupBegin(KHE_SOLN soln);
+void KheSolnTimeGroupAddTime(KHE_SOLN soln, KHE_TIME t);
+void KheSolnTimeGroupSubTime(KHE_SOLN soln, KHE_TIME t);
+void KheSolnTimeGroupUnion(KHE_SOLN soln, KHE_TIME_GROUP tg2);
+void KheSolnTimeGroupIntersect(KHE_SOLN soln, KHE_TIME_GROUP tg2);
+void KheSolnTimeGroupDifference(KHE_SOLN soln, KHE_TIME_GROUP tg2);
+KHE_TIME_GROUP KheSolnTimeGroupEnd(KHE_SOLN soln);
+}
+are provided for constructing a time group while solving.  The first
+operation begins the process; the next five do what the corresponding
+operations for instance time groups do, and the last operation returns the
+finished time group.  Its kind will be @C { KHE_TIME_GROUP_KIND_ORDINARY },
+and its @C { id } and @C { name } attributes will be @C { NULL }.
+@PP
+A similar set of operations constructs a resource group:
+@ID { 0.95 1.0 } @Scale @C {
+void KheSolnResourceGroupBegin(KHE_SOLN soln, KHE_RESOURCE_TYPE rt);
+void KheSolnResourceGroupAddResource(KHE_SOLN soln, KHE_RESOURCE r);
+void KheSolnResourceGroupSubResource(KHE_SOLN soln, KHE_RESOURCE r);
+void KheSolnResourceGroupUnion(KHE_SOLN soln, KHE_RESOURCE_GROUP rg2);
+void KheSolnResourceGroupIntersect(KHE_SOLN soln, KHE_RESOURCE_GROUP rg2);
+void KheSolnResourceGroupDifference(KHE_SOLN soln, KHE_RESOURCE_GROUP rg2);
+KHE_RESOURCE_GROUP KheSolnResourceGroupEnd(KHE_SOLN soln);
+}
+and an event group:
+@ID @C {
+void KheSolnEventGroupBegin(KHE_SOLN soln);
+void KheSolnEventGroupAddEvent(KHE_SOLN soln, KHE_EVENT e);
+void KheSolnEventGroupSubEvent(KHE_SOLN soln, KHE_EVENT e);
+void KheSolnEventGroupUnion(KHE_SOLN soln, KHE_EVENT_GROUP eg2);
+void KheSolnEventGroupIntersect(KHE_SOLN soln, KHE_EVENT_GROUP eg2);
+void KheSolnEventGroupDifference(KHE_SOLN soln, KHE_EVENT_GROUP eg2);
+KHE_EVENT_GROUP KheSolnEventGroupEnd(KHE_SOLN soln);
+}
+All the usual operations may be applied to these groups.  The functions
+are organized in this way, using @C { soln } as a factory object instead
+of the group itself, to ensure that groups are complete and immutable
+(apart from their back pointers, which may be set at any time) by the
+time they are given to the user.  The groups know which instance they
+are for, but the instance, being immutable after its creation is
+complete, is not aware of their existence.
+@End @Section
+
+@Section
+   @Title { Diversification }
+   @Tag { solutions.diversification }
+@Begin
+@LP
+One strategy for finding good solutions is to find many solutions and
+choose the best.  This only works when the solutions are diverse,
+creating a need to find ways to produce diversity.
+@PP
+Each solution contains a non-negative integer @I { diversifier }.
+Its initial value is 0, but it may be set and retrieved at any time by
+@ID @C {
+void KheSolnSetDiversifier(KHE_SOLN soln, int val);
+int KheSolnDiversifier(KHE_SOLN soln);
+}
+When solutions are created that need to be diverse, each is given
+a different diversifier.  When an algorithm reaches a point where
+it could equally well follow any one of several paths, it consults
+the diversifier when making its choice.
+@PP
+Suppose the diversifier has value @M { d } and a point is reached
+where there are @M { c } alternatives, for some @M { c >= 1 }.  A
+simple approach is to choose the @C { i }th alternative (counting
+from 0), where
+@ID @C { i = d % c; }
+We call a function @M { D(d, c) } which returns an integer @M { i }
+s.t. @M { 0 <= i < c } a @I { diversification function }.
+@PP
+How should we choose diversifiers and diversification functions to
+ensure that we really do get diversity?  One possibility is to start
+with a random integer and change it using a random number generator,
+passing the current value as seed, each time the diversifier is
+consulted.  But there is no way to analyse the effect of this, so
+instead we are going to examine what happens when the diversifiers
+are fixed successive integers starting from 0.
+@PP
+What we want is a little hard to grasp.  Suppose that, at some points
+in the algorithm, it is offered a choice between 1 alternative; at
+others, there are 2 alternatives, and so on, with a maximum of
+@M { n } alternatives.  For a given diversifier, there are @M { n! }
+different functions of the number of choices.  Ideally we would want
+all of these functions to turn up as @M { d } varies over its range.
+@PP
+It is not obvious, but it is a fact that the modulus function
+above does turn up every function when @M { n } is 1, 2 or 3,
+but when @M { n } is 4 it produces 12 distinct functions, only
+half the possible 24 functions, as the following tables,
+obtained by running @C { khe -d4 }, show:
+@ID @F -2p @Font -4px @Break {
+@RawVerbatim {
+  d |  1  2
+----+------
+  0 |  0  0
+  1 |  0  1
+----+------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3
+----+---------
+  0 |  0  0  0
+  1 |  0  1  1
+  2 |  0  0  2
+  3 |  0  1  0
+  4 |  0  0  1
+  5 |  0  1  2
+----+---------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3  4
+----+------------
+  0 |  0  0  0  0
+  1 |  0  1  1  1
+  2 |  0  0  2  2
+  3 |  0  1  0  3
+  4 |  0  0  1  0
+  5 |  0  1  2  1
+  6 |  0  0  0  2
+  7 |  0  1  1  3
+  8 |  0  0  2  0
+  9 |  0  1  0  1
+ 10 |  0  0  1  2
+ 11 |  0  1  2  3
+ 12 |  0  0  0  0  (same as 0)
+ 13 |  0  1  1  1  (same as 1)
+ 14 |  0  0  2  2  (same as 2)
+ 15 |  0  1  0  3  (same as 3)
+ 16 |  0  0  1  0  (same as 4)
+ 17 |  0  1  2  1  (same as 5)
+ 18 |  0  0  0  2  (same as 6)
+ 19 |  0  1  1  3  (same as 7)
+ 20 |  0  0  2  0  (same as 8)
+ 21 |  0  1  0  1  (same as 9)
+ 22 |  0  0  1  2  (same as 10)
+ 23 |  0  1  2  3  (same as 11)
+----+------------
+}
+}
+Each row is one value of @M { d }, and each column is one value
+of @M { c }.  What this means is that if, during the course of
+one run, no more than 4 choices are offered at any one point, then
+only 12 distinct solutions can emerge, no matter how many are begun.
+@PP
+The most natural diversification function which produces distinct
+outcomes is probably
+@ID @C { (d / fact(c - 1)) % c }
+where @C { fact } is the factorial function.  (To avoid overflow,
+in practice one stops multiplying as soon as the value exceeds
+@C { d }.)  Each line is something like the binary representation
+of @C { d }, only in a factorial number system rather than binary:
+@ID @F -2p @Font -4px @Break {
+@RawVerbatim {
+  d |  1  2
+----+------
+  0 |  0  0
+  1 |  0  1
+----+------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3
+----+---------
+  0 |  0  0  0
+  1 |  0  1  0
+  2 |  0  0  1
+  3 |  0  1  1
+  4 |  0  0  2
+  5 |  0  1  2
+----+---------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3  4
+----+------------
+  0 |  0  0  0  0
+  1 |  0  1  0  0
+  2 |  0  0  1  0
+  3 |  0  1  1  0
+  4 |  0  0  2  0
+  5 |  0  1  2  0
+  6 |  0  0  0  1
+  7 |  0  1  0  1
+  8 |  0  0  1  1
+  9 |  0  1  1  1
+ 10 |  0  0  2  1
+ 11 |  0  1  2  1
+ 12 |  0  0  0  2
+ 13 |  0  1  0  2
+ 14 |  0  0  1  2
+ 15 |  0  1  1  2
+ 16 |  0  0  2  2
+ 17 |  0  1  2  2
+ 18 |  0  0  0  3
+ 19 |  0  1  0  3
+ 20 |  0  0  1  3
+ 21 |  0  1  1  3
+ 22 |  0  0  2  3
+ 23 |  0  1  2  3
+----+------------
+}
+}
+But there is still a problem:  if all alternatives have 4 choices, say,
+then the first 6 threads will produce the same result despite differing
+in @C { d }.  The solution to this seems to be function
+@ID @C { (d / fact(c - 1) + d % fact(c - 1)) % c }
+Delightfully, it produces
+@ID @F -2p @Font -4px @Break {
+@RawVerbatim {
+  d |  1  2
+----+------
+  0 |  0  0
+  1 |  0  1
+----+------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3
+----+---------
+  0 |  0  0  0
+  1 |  0  1  1
+  2 |  0  0  1
+  3 |  0  1  2
+  4 |  0  0  2
+  5 |  0  1  0
+----+---------
+}
+||1c
+@RawVerbatim {
+  d |  1  2  3  4
+----+------------
+  0 |  0  0  0  0
+  1 |  0  1  1  1
+  2 |  0  0  1  2
+  3 |  0  1  2  3
+  4 |  0  0  2  0
+  5 |  0  1  0  1
+  6 |  0  0  0  1
+  7 |  0  1  1  2
+  8 |  0  0  1  3
+  9 |  0  1  2  0
+ 10 |  0  0  2  1
+ 11 |  0  1  0  2
+ 12 |  0  0  0  2
+ 13 |  0  1  1  3
+ 14 |  0  0  1  0
+ 15 |  0  1  2  1
+ 16 |  0  0  2  2
+ 17 |  0  1  0  3
+ 18 |  0  0  0  3
+ 19 |  0  1  1  0
+ 20 |  0  0  1  1
+ 21 |  0  1  2  2
+ 22 |  0  0  2  3
+ 23 |  0  1  0  0
+----+------------
+}
+}
+and is diverse up to @M { c = 8 } at least.  Function
+@ID @C {
+int KheSolnDiversifierChoose(KHE_SOLN soln, int c);
+}
+implements this function, returning a non-negative integer
+less than @C { c }.
+@PP
+It is quite reasonable for @I every algorithm faced with an
+arbitrary choice to diversify.  It is easy to do, and it
+provides a continual prodding towards diversity that should
+drive solutions with different diversifiers further and
+further apart as solving continues, always provided that
+there are sufficiently many choices.
+@End @Section
+
+@Section
+    @Title { Visit numbers }
+    @Tag { solutions.visit }
+@Begin
+@LP
+Some algorithms, such as tabu search and ejection chains, need
+to know whether some part of the solution has changed recently.
+KHE supports this with a system of @I { visit numbers }.
+@PP
+A visit number is just an integer stored at some point in the
+solution.  The KHE platform initializes visit numbers (to 0)
+and copies them, but does not otherwise use them.  The user
+is free to set their values in any way at any time, using
+operations that look generically like this:
+@ID @C {
+void KheSolnEntitySetVisitNum(KHE_SOLN_ENTITY e, int num);
+int KheSolnEntityVisitNum(KHE_SOLN_ENTITY e);
+}
+But there is also a conventional way to use visit numbers,
+as follows.
+@PP
+The visit number in the solution object is used differently from
+the others.  The following operations are applicable to it:
+@ID @C {
+void KheSolnSetVisitNum(KHE_SOLN soln, int num);
+int KheSolnVisitNum(KHE_SOLN soln);
+void KheSolnNewVisit(KHE_SOLN soln);
+}
+The first two operations, the usual ones, are not used directly.  The
+third increases @C { soln }'s visit number by one.  This new value
+has not previously been assigned to any visit number.
+@PP
+The visit numbers of other solution entities never exceed the
+visit number of their solution object.  The operations for other
+solution entities are typified by these ones for meets:
+@ID @C {
+void KheSolnEntitySetVisitNum(KHE_SOLN_ENTITY x, int num);
+int KheSolnEntityVisitNum(KHE_SOLN_ENTITY x);
+bool KheSolnEntityVisited(KHE_SOLN_ENTITY x, int slack);
+void KheSolnEntityVisit(KHE_SOLN_ENTITY x);
+void KheSolnEntityUnVisit(KHE_SOLN_ENTITY sx
+}
+Type @C { SOLN_ENTITY } is fictitious and so are these functions;
+they just display the standard pattern.  The first two are the
+standard ones.  The third returns the value of the condition
+@ID @C {
+KheSolnVisitNum(soln) - KheSolnEntityVisitNum(x) <= slack
+}
+where @C { soln } is the solution containing @C { x }.  The
+fourth sets @C { x }'s visit number to its solution object's
+visit number, and the last sets it to one less than its
+solution's visit number.
+@PP
+These operations may be used to implement tabu search
+efficiently as follows.  Suppose for example that a change
+to the assignment of @C { meet } is to remain
+tabu until at least @C { tabu_len } other changes have been
+made.  The code for this is
+@ID @C {
+if( !KheMeetVisited(meet, tabu_len) )
+{
+  KheSolnNewVisit(KheMeetSoln(meet));
+  KheMeetVisit(meet);
+  ... change the assignment of meet ...
+}
+}
+To ensure that everything is visitable initially, call
+@ID @C {
+KheSolnSetVisitNum(soln, tabu_len);
+}
+It is easy to generalize this code to other operations.
+@PP
+One form of the ejection chains algorithm requires that once a
+meet (or other entity) has been changed during the
+current visit, it must remain tabu until a new visit is started
+in the outer loop of the algorithm.  The code for this is
+@ID @C {
+if( !KheMeetVisited(meet, 0) )
+{
+  KheMeetVisit(meet);
+  ... change the assignment of meet ...
+}
+}
+A variant of this idea makes @C { meet } tabu to recursive calls,
+but not tabu for the entire remainder of the current visit.  The
+code for this is
+@ID @C {
+if( !KheMeetVisited(meet, 0) )
+{
+  KheMeetVisit(meet);
+  ... change the assignment of meet and recurse ...
+  KheMeetUnVisit(meet);
+}
+}
+Only meets in the direct line of the recursion are tabu.
+@End @Section
+
+@Section
+    @Title { Meets }
+    @Tag { solutions.meets }
+@Begin
+@LP
+A meet is created by calling
+@ID { 0.98 1.0 } @Scale @C {
+KHE_MEET KheMeetMake(KHE_SOLN soln, int duration, KHE_EVENT e);
+}
+This creates and adds to @C { soln } a new meet of the given
+duration, which must be at least 1.  If @C { e } is non-@C { NULL },
+it indicates that this meet is derived from instance event @C { e }.
+Initially the meet contains no tasks; they must be added separately.
+A meet may be deleted from its solution by calling
+@ID @C {
+void KheMeetDelete(KHE_MEET meet);
+}
+Any tasks within @C { meet } are also deleted.  If @C { meet } is
+assigned to another meet, or any other meets are assigned to it,
+all those assignments are unassigned.  The meet is also deleted
+from any node (Section {@NumberOf extras.nodes}) it may lie in.
+@PP
+The back pointer of a meet may be set and retrieved by
+@ID @C {
+void KheMeetSetBack(KHE_MEET meet, void *back);
+void *KheMeetBack(KHE_MEET meet);
+}
+and the visit number by
+@ID @C {
+void KheMeetSetVisitNum(KHE_MEET meet, int num);
+int KheMeetVisitNum(KHE_MEET meet);
+bool KheMeetVisited(KHE_MEET meet, int slack);
+void KheMeetVisit(KHE_MEET meet);
+void KheMeetUnVisit(KHE_MEET meet);
+}
+as usual.  The other attributes of a meet are accessed by
+@ID @C {
+KHE_SOLN KheMeetSoln(KHE_MEET meet);
+int KheMeetDuration(KHE_MEET meet);
+KHE_EVENT KheMeetEvent(KHE_MEET meet);
+int KheMeetIndex(KHE_MEET meet);
+}
+# float KheMeetWorkload(KHE_MEET meet);
+These return the enclosing solution, duration,
+# (defined to be @C { meet }'s duration times its instance event's
+# workload divided by its instance event's duration, hence the
+# @C { float } result),
+the instance event that @C { meet } is derived from (possibly
+@C { NULL }), and the @I { index } of
+@C { meet }, that is, the value of @C { i } for which
+@C { KheSolnMeet(soln, i) } returns @C { meet }.  Index numbers
+change when meets are deleted (what actually happens
+is that the hole left by the deletion of a meet, if not
+last, is plugged by the last meet), so care is needed.
+@PP
+When deciding what order to assign meets in, it is handy to
+have some measure of how difficult they are to timetable.  Functions
+@ID @C {
+int KheMeetAssignedDuration(KHE_MEET meet);
+int KheMeetDemand(KHE_MEET meet);
+}
+attempt to provide this.  @C { KheMeetAssignedDuration } is the
+duration of @C { meet } if it is assigned, or 0 otherwise.  For
+each meet in the subtree rooted at @C { meet } (that is, @C { meet }
+itself, the meets assigned to @C { meet }, and so on recursively),
+@C { KheMeetDemand } calculates the product of the duration of the
+meet and the number of tasks it contains, and returns the sum of
+these products.  This value is stored in the meet and kept up to date
+as solutions change, so a call on this function costs almost nothing.
+@PP
+A task is added to its meet when it is created, and removed from
+its meet when it is deleted.  To visit the tasks of a meet, call
+@ID @C {
+int KheMeetTaskCount(KHE_MEET meet);
+KHE_TASK KheMeetTask(KHE_MEET meet, int i);
+bool KheMeetRetrieveTask(KHE_MEET meet, char *role, KHE_TASK *task);
+bool KheMeetFindTask(KHE_MEET meet, KHE_EVENT_RESOURCE er,
+  KHE_TASK *task);
+}
+The first two traverse the tasks.  The order of tasks within
+meets is not significant, and it may change as tasks are
+created and deleted.  @C { KheMeetRetrieveTask } retrieves a
+task which is derived from an event resource with the given
+@C { role }, if present.  @C { KheMeetFindTask } is similar,
+but it looks for a task derived from event resource @C { er },
+rather than for a role.  There are also
+@ID @C {
+bool KheMeetContainsResourcePreassignment(KHE_MEET meet,
+  KHE_RESOURCE r, bool as_in_event_resource, KHE_TASK *task);
+bool KheMeetContainsResourceAssignment(KHE_MEET meet,
+  KHE_RESOURCE r, KHE_TASK *task);
+}
+which return @C { true } if @C { meet } contains a task preassigned or
+assigned @C { r }, setting @C { *task } to one if so.  For parameter
+@C { as_in_event_resource }, see function @C { KheTaskIsPreassigned }
+(Section {@NumberOf solutions.tasks.domains}).
+@PP
+A meet contains an optional @I { assignment }, which assigns the
+meet to a particular offset in another meet, thereby fixing its
+time relative to the starting time of the other meet, and a
+@I { time domain } which restricts the times it may start at to an
+arbitrary subset of the times of the cycle.  These attributes are
+described in detail in later sections.
+@PP
+If the user chooses to use layer trees (Chapter {@NumberOf extras}),
+then a meet may be contained in at most one node.  Function
+@ID @C {
+KHE_NODE KheMeetNode(KHE_MEET meet);
+}
+returns the node containing @C { meet }, or @C { NULL } if none.
+# and functions
+# @ID @C {
+# int KheMeetLayerCount(KHE_MEET meet);
+# KHE_LAYER KheMeetLayer(KHE_MEET meet, int i);
+# }
+# visit the layers containing @C { meet } in an unspecified order.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheMeetDebug(KHE_MEET meet, int verbosity,
+  int indent, FILE *fp);
+}
+prints @C { meet } onto @C { fp } with the given verbosity and indent
+(for which see Section {@NumberOf intro.common}).  Verbosity 1 prints
+just an identifying name; verbosity 2 adds the chain of assignments
+leading out of @C { meet }.
+@PP
+The name is usually the name of @C { meet }'s event, between quotes.
+If there is more than one meet corresponding to that event, this
+will be followed by a colon and the number @C { i } for which
+@C { KheEventMeet(soln, e, i) } equals @C { meet }.  Alternatively, if
+@C { meet } is a cycle meet (Section {@NumberOf solutions.meets.cycle}),
+the name is its starting time (a time name or else an index) between slashes.
+@BeginSubSections
+
+@SubSection
+    @Title { Splitting and merging }
+@Begin
+@LP
+A meet may be split into two meets whose
+durations sum to the duration of the original meet:
+@ID @C {
+bool KheMeetSplitCheck(KHE_MEET meet, int duration1, bool recursive);
+bool KheMeetSplit(KHE_MEET meet, int duration1, bool recursive,
+  KHE_MEET *meet1, KHE_MEET *meet2);
+}
+These functions follow the pattern described earlier for operations
+that might violate the solution invariant.  The first checks that
+the split is permitted, and the second carries it out, returning
+@C { true } and setting @C { *meet1 } and @C { *meet2 } to the new
+meets if the split is permitted, and returning @C { false }
+and leaving @C { *meet1 } and @C { *meet2 } unchanged if not.  The original
+meet, @C { meet }, is undefined after a successful split,
+unless @C { meet1 } or @C { meet2 } is set to @C { &meet } (this may seem
+dangerous, but it does what is wanted whether the split succeeds or not).
+@PP
+The first new meet, @C { *meet1 }, has duration @C { duration1 },
+and the second, @C { *meet2 }, has the remaining duration.  Parameter
+@C { duration1 } must be such that both fragments have duration at
+least 1, otherwise both functions abort.  Their back pointers are set
+to the back pointer of @C { meet }.
+@PP
+If @C { recursive } is @C { true }, any meets assigned to @C { meet }
+that overlap both fragments will also be split, into one meet for the
+part that overlaps @C { *meet1 } and one for the part that overlaps
+@C { *meet2 }.  This process proceeds recursively as deeply as required.
+If @C { recursive } is @C { false }, no such splitting of other meets
+occurs; if this would leave a meet protruding from the meet it is
+assigned to, the operation is not carried out and @C { false } is
+returned.  This is the only possible cause of failure, so when
+@C { recursive } is @C { true }, both @C { KheMeetSplitCheck }
+and @C { KheMeetSplit } return true.
+@PP
+When a meet splits, its tasks split also.  This produces what is
+typically required when assigning rooms:  the fragments are free
+to be assigned different resources.  The other possibility, where
+the fragments are required to be assigned the same resource, can
+be obtained by assigning the fragmentary tasks to each other.  This
+must be done separately.
+@PP
+The next two functions are concerned with merging two meets into one:
+@ID @C {
+bool KheMeetMergeCheck(KHE_MEET meet1, KHE_MEET meet2);
+bool KheMeetMerge(KHE_MEET meet1, KHE_MEET meet2,
+  KHE_MEET *meet);
+}
+Parameters @C { meet1 } and @C { meet2 } become undefined after a successful
+merge, unless @C { meet } is set to @C { &meet1 } or @C { &meet2 }.  The
+functions return @C { true } if @C { meet1 } and @C { meet2 } are @I { mergeable }:
+@BulletList
+
+@LI {
+They must either both be cycle meets (Section {@NumberOf solutions.meets.cycle})
+or both not be cycle meets.
+}
+
+@LI {
+They must have equal back pointers, possibly @C { NULL }.
+}
+
+@LI {
+They must have the same value of @C { KheMeetEvent }, possibly
+@C { NULL }.
+}
+
+@LI {
+They must lie in the same node (or in no node).
+}
+
+@LI {
+They must either be assigned to the same meet, or not assigned.  If both
+are assigned, the offset of one (it may be either) must equal the offset
+plus duration of the other, ensuring that they are adjacent in time.
+Cycle meets are never assigned, but they too must be adjacent in time.
+}
+
+@LI {
+They must have the same number of tasks, and it must be possible
+to permute the tasks of @C { meet2 } so that corresponding tasks
+are compatible.  Two tasks are compatible when they have the same
+back pointers, taskings, domains, and assignments.
+}
+
+@EndList
+All this usually holds trivially when merging the results of a previous
+split.  The common attributes are used by the merged meet.
+@PP
+As explained above, @C { KheMeetSplit } optionally splits meets
+recursively.  Merging offers nothing analogous:  only the meets
+which are the parameters of @C { KheMeetMerge } are merged.
+@End @SubSection
+
+@SubSection
+    @Title { Hierarchical timetabling and meet assignment }
+    @Tag { solutions.meets.assignment }
+@Begin
+@LP
+KHE's basic operations do not include one which assigns a time
+to a meet.  Instead, one meet is assigned to another meet at
+a given offset, fixing the starting times of the two meets
+relative to each other, but not assigning a specific time to
+either.  For example, if @C { m1 } is assigned to @C { m2 }
+at offset 2, then whatever time @C { m2 } eventually starts
+at, @C { m1 } will start two times later.
+@PP
+This arrangement supports @I { hierarchical timetabling }, in
+which several meets are timetabled relative to each other,
+then the whole group is timetabled into a larger context, and
+so on.  One simple application is in handling link events
+constraints.  Assigning all the linked events except one
+to that exception guarantees that the linked events will be
+simultaneous; the time eventually assigned to the exception
+becomes the time assigned to all.
+@PP
+The meet assignment operations are
+@ID @C {
+bool KheMeetAssignCheck(KHE_MEET meet,
+  KHE_MEET target_meet, int target_offset);
+bool KheMeetAssign(KHE_MEET meet,
+  KHE_MEET target_meet, int target_offset);
+void KheMeetUnAssign(KHE_MEET meet);
+}
+@C { KheMeetAssignCheck } checks whether the assignment would succeed,
+and @C { KheMeetAssign } also carries it out if so.  Function
+@C { KheMeetUnAssign } unassigns @C { meet }; this cannot violate the
+solution invariant.  KHE aborts if an attempt is made to assign a meet
+which is already assigned, or to unassign a meet which is not assigned.
+@PP
+The assignment may be retrieved by calling
+@ID @C {
+KHE_MEET KheMeetAsst(KHE_MEET meet);
+int KheMeetAsstOffset(KHE_MEET meet);
+}
+These return the meet that @C { meet } is assigned to, and
+the offset into that meet.  If there is no assignment,
+the values returned are @C { NULL } and @C { -1 }.
+@PP
+Although a meet may only be assigned to one meet, any number of meets
+may be assigned to a meet, each with its own offset.  Functions
+@ID @C {
+int KheMeetAssignedToCount(KHE_MEET target_meet);
+KHE_MEET KheMeetAssignedTo(KHE_MEET target_meet, int i);
+}
+visit all the meets that are assigned to a given meet, in an
+unspecified order which could change when a meet is assigned to
+or unassigned from @C { target_meet }.  (What actually happens
+is that an assignment is added to the end, and the hole created
+by the unassignment of any element other than the last is plugged
+with the last element.)
+@PP
+Given that a meet can be assigned to another meet at some offset,
+it follows that a chain of assignments can be built up, from one
+meet to another and another and so on.  Function
+@ID @C {
+KHE_MEET KheMeetRoot(KHE_MEET meet, int *offset_in_root);
+}
+returns the @I { root } of @C { meet }:  the last meet on the
+chain of assignments leading out of @C { meet }.  It also sets
+@C { *offset_in_root } to the offset of @C { meet } in its root
+meet, which is just the sum of the offsets along the assignment
+path.  One function which uses @C { KheMeetRoot } is
+@ID @C {
+bool KheMeetOverlap(KHE_MEET meet1, KHE_MEET meet2);
+}
+This returns @C { true } if @C { meet1 } and @C { meet2 } can
+be proved to overlap in time, because they have the same root
+meet, and their durations, and their offsets in that root meet,
+cause them to overlap.
+@End @SubSection
+
+@SubSection
+    @Title { Cycle meets and time assignment }
+    @Tag { solutions.meets.cycle }
+@Begin
+@LP
+Even if most meets are assigned to other meets, there must
+be a way to associate a particular starting time with a meet
+eventually.  Rather than having two kinds of assignment, one
+to a meet and one to a time, which might conflict with each
+other, KHE has a special kind of meet called a @I { cycle meet }.
+A cycle meet has type @C { KHE_MEET } as usual, and it has many
+of the properties of ordinary meets.  But it is also associated
+with a particular starting time (and its domain contains just
+that time), and so by assigning a meet to a cycle meet one also
+assigns a time.
+@PP
+The user cannot create cycle meets directly.  Instead, one cycle
+meet is created automatically whenever a solution is created.
+The starting time of this @I { initial cycle meet } is the first
+time of the cycle, and its duration is the number of times of
+the cycle.  Cycle meets may be split (their offspring are also
+cycle meets) and merged.  They may even be deleted, but this is
+not likely to ever be a good idea.  When solving, it is usual
+to split the initial cycle meet into one meet for each block
+of times not separated by a meal break or the end of a day.
+(This prevents other meets from being assigned times which
+cause them to span these breaks.)  A solver function for
+this is presented below.  When evaluating a fixed solution,
+it is usual not to split the initial cycle meet, since the
+other meets already have unchangeable starting times and
+durations, and splitting the initial cycle meet may prevent
+these meets from being assigned to cycle meets.
+@PP
+Function
+@ID @C {
+bool KheMeetIsCycleMeet(KHE_MEET meet);
+}
+returns @C { true } when @C { meet } is a cycle meet.
+Cycle meets appear on the list of all meets contained in
+a solution.  They are not stored separately anywhere.  So
+the way to find them all is
+@ID @C {
+for( i = 0;  i < KheSolnMeetCount(soln);  i++ )
+{
+  meet = KheSolnMeet(soln, i);
+  if( KheMeetIsCycleMeet(meet) )
+    visit_cycle_meet(meet);
+}
+}
+However, the initial cycle meet always comes first, and if all
+cycle meet splitting is done before any other meets are created,
+as is usually the case, the cycle meets will be first on the list.
+An effective optimization in that case is
+@ID @C {
+time_count = KheInstanceTimeCount(KheSolnInstance(soln));
+durn = 0;
+for( i = 0;  i < KheSolnMeetCount(soln) && durn < time_count;  i++ )
+{
+  meet = KheSolnMeet(soln, i);
+  if( KheMeetIsCycleMeet(meet) )
+  {
+    visit_cycle_meet(meet);
+    durn += KheMeetDuration(meet);
+  }
+}
+}
+which terminates the loop as soon as the total duration of the
+cycle meets visited reaches the number of times in the instance.
+@PP
+Solutions offer several functions whose results depend on
+cycle meets.  They notice when cycle meets are split, and
+adjust their results accordingly.  Functions
+@ID @C {
+KHE_MEET KheSolnTimeCycleMeet(KHE_SOLN soln, KHE_TIME t);
+int KheSolnTimeCycleMeetOffset(KHE_SOLN soln, KHE_TIME t);
+}
+return the unique cycle meet running at time @C { t }, and
+the offset of @C { t } within that meet.  Function
+@ID @C {
+KHE_TIME_GROUP KheSolnPackingTimeGroup(KHE_SOLN soln, int duration);
+}
+returns a time group containing the times at which a meet of the
+given duration may begin.  For example, if the initial cycle meet
+has not been split, @C { KheSolnPackingTimeGroup(soln, 2) } will
+contain every time except the last in the cycle; if the initial
+cycle meet has been split into one meet for each day, it will
+contain every time except the last in each day; and so on.
+@PP
+As mentioned earlier, when solving it is usual to split the
+initial cycle meet into one fragment for each maximal block
+of times not spanning a meal break or end of day.  The XML
+format does not record this information, but solver
+@ID @C {
+void KheSolnSplitCycleMeet(KHE_SOLN soln);
+}
+is able to infer it, as follows.  Say that two events of
+@C { soln }'s instance are related if they share a required link
+events constraint with non-zero weight.  Find the equivalence
+classes of the reflexive transitive closure of this relation.
+For each class, examine the required split events constraints
+with non-zero weight of the events of the class to determine
+what durations the meets derived from the events of this
+class may have.  Also determine whether the starting time
+of the class is preassigned, because one of its events has
+a preassigned time.
+@PP
+For each permitted duration, consult the required prefer times
+constraints of non-zero weight of the events of the class to
+see when its meets of that duration could begin.  If a meet
+@C { m } with duration 2 can begin at time @C { t }, there
+cannot be a break after time @C { t }; if a meet @C { m } with
+duration 3 can begin at time @C { t }, there cannot be a break
+after time @C { t } or after the time following @C { t }, if
+any; and so on.  Accumulating all this information for all
+classes determines the set of times which cannot be followed
+by a break.  All other times can be followed by a break, and
+the initial cycle event is split at these times, and also at
+times where a break is explicitly allowed by function
+@C { KheTimeBreakAfter } from Section {@NumberOf times_times}. 
+@PP
+These functions assign a time to a meet, following a familiar pattern:
+@ID @C {
+bool KheMeetAssignTimeCheck(KHE_MEET meet, KHE_TIME t);
+bool KheMeetAssignTime(KHE_MEET meet, KHE_TIME t);
+void KheMeetUnAssignTime(KHE_MEET meet);
+KHE_TIME KheMeetAsstTime(KHE_MEET meet);
+}
+The first checks that the assignment is possible, the second performs
+the assignment if possible, the third removes an assignment, and the
+last returns the assigned time, or @C { NULL } if none.  KHE aborts
+if an attempt is made to assign a time to a meet which is already
+assigned, or to unassign one which is not assigned.
+@PP
+@C { KheMeetAssignTime } works by converting its time into a cycle
+meet and offset, via functions @C { KheSolnTimeCycleMeet } and
+@C { KheSolnTimeCycleMeetOffset } above, and assigning its meet
+to that cycle meet and offset.  Meets may also be assigned to
+cycle meets directly, using @C { KheMeetAssign }.  The direct
+route is more convenient in general solving, since time assignment
+is then not a special case.
+@PP
+The @I { leader meet } of a meet @C { m } is the first meet
+on the chain of assignments leading out of @C { m } (possibly
+@C { m } itself) that lies in a node and is not a cycle meet.
+The leader meet is significant because of the convention that
+meets lying in nodes may be assigned to other meets, but meets
+not lying in nodes already have an assignment which may not be
+changed.  When this convention is followed, to change the time
+assigned to @C { m } one must change the assignment of its
+leader meet, or of a non-cycle meet further up the chain of
+assignments than the leader meet.  Function
+@ID @C {
+KHE_MEET KheMeetLeader(KHE_MEET meet, int *offset_in_leader);
+}
+returns the leader meet of @C { meet }, and sets @C { *offset_in_leader }
+to the offset of @C { meet } in its leader meet.  A meet may have no leader
+meet (a cycle meet, for example, never does), in which case @C { KheMeetLeader }
+returns @C { NULL } and @C { *offset_in_leader } is undefined.
+@End @SubSection
+
+@SubSection
+    @Title { Moving and swapping }
+    @Tag { solutions.meets.swapping }
+@Begin
+@LP
+In addition to the fundamental operations of assignment and
+unassignment, KHE offers operations for moving and swapping.
+To move a meet, call
+@ID @C {
+bool KheMeetMoveCheck(KHE_MEET meet,
+  KHE_MEET target_meet, int target_offset);
+bool KheMeetMove(KHE_MEET meet,
+  KHE_MEET target_meet, int target_offset);
+}
+These follow the usual pattern, returning @C { true } if the
+operation can be carried out, with @C { KheMeetMove }
+actually doing it in that case, or else changing nothing.
+@C { KheMeetMove } unassigns @C { meet } if it is currently
+assigned, then assigns it to @C { target_meet } at @C { target_offset }.
+@PP
+These functions have two features that could be called idiosyncracies.
+First, parameter @C { target_meet } may be @C { NULL }, indicating that
+an unassignment is all that is required; @C { target_offset } is not
+used in that case.  This supports the occasionally useful idea that
+the unassigned state is just another value that @C { meet } may be
+assigned---another element of its domain.  Second, the functions
+return @C { false } when the move would change nothing:  when @C { meet }
+is already assigned to @C { target_meet } at @C { target_offset } (or,
+if @C { target_meet } is @C { NULL }, when @C { meet } is currently
+unassigned).  The idea here is that only moves which genuinely
+move something are allowed; no solver wants to waste time on
+moves that aren't really moves at all.
+@PP
+For convenience, versions of these functions are provided which
+move @C { meet } to a time:
+@ID @C {
+bool KheMeetMoveTimeCheck(KHE_MEET meet, KHE_TIME t);
+bool KheMeetMoveTime(KHE_MEET meet, KHE_TIME t);
+}
+These use @C { t } to find the appropriate cycle meet
+and offset and call the functions above.
+@PP
+To swap the assignments of two meets, call
+@ID @C {
+bool KheMeetSwapCheck(KHE_MEET meet1, KHE_MEET meet2);
+bool KheMeetSwap(KHE_MEET meet1, KHE_MEET meet2);
+}
+@C { KheMeetSwap } has two useful properties.  First, exchanging
+the order of its parameters never affects what it does.  Second, the
+code fragment
+@ID @C {
+if( KheMeetSwap(meet1, meet2) )
+  KheMeetSwap(meet1, meet2);
+}
+leaves the solution in its original state whether the swap
+occurs or not.
+@PP
+The idiosyncracies of moves are shared by swaps.  It is acceptable
+for one of @C { meet1 } and @C { meet2 } to be unassigned, in which
+case the other will become unassigned if the operation succeeds.
+And the functions return @C { false } when the swap would change
+nothing:  when the two meets are the same meet,
+or they have the same assignment, or they are both unassigned.
+@PP
+A variant of the basic idea of swapping, called @I { block swapping },
+is offered:
+@ID { 0.98 1.0 } @Scale @C {
+bool KheMeetBlockSwapCheck(KHE_MEET meet1, KHE_MEET meet2);
+bool KheMeetBlockSwap(KHE_MEET meet1, KHE_MEET meet2);
+}
+The two useful properties of ordinary swaps also hold for block swaps.
+Block swapping is the same as ordinary swapping except that it treats
+one very special case in a different way:  the case when both
+meets are initially assigned to the same meet, at different
+offsets which cause them to be adjacent, but not overlapping, in time.
+In this case, both meets remain assigned to the same
+meet afterwards, and the later meet is assigned the
+offset of the earlier one, but the earlier one is not necessarily
+assigned the offset of the later one.  Instead, it is assigned that
+offset which places it adjacent to the other meet.
+@PP
+For example, when swapping a meet of duration 1 assigned to the
+first time on Monday with a meet of duration 2 assigned to the
+second time on Monday, @C { KheMeetBlockSwap } would move the first
+meet to the third time on Monday, not the second time.  This is much
+more likely to work well when the two meets have preassigned resources
+in common.  It is the same as an ordinary swap when the meets have
+the same duration, but it is different when their durations differ.
+@End @SubSection
+
+@SubSection
+    @Title { Time domains and preassignments }
+    @Tag { solutions.meets.domains }
+@Begin
+@LP
+Each meet contains a set of times called its @I { time domain }, or
+just @I { domain }.  It is an unbreakable constraint (a consequence
+of the solution invariant) that the chain of assignments leading
+out of the meet either does not assign a time to the meet, or else
+it assigns it a time from its domain.
+@PP
+A time domain is just a time group.  The following operations
+set and retrieve domains:
+@ID @C {
+bool KheMeetSetDomainCheck(KHE_MEET meet, KHE_TIME_GROUP tg);
+bool KheMeetSetDomain(KHE_MEET meet, KHE_TIME_GROUP tg);
+KHE_TIME_GROUP KheMeetDomain(KHE_MEET meet);
+}
+The first two return @C { false } when @C { meet } is a cycle meet,
+or the domain change would violate the solution invariant.  This
+states two things:  the domain of a meet must be a superset of the
+domain of the meet it is assigned to, if any, adjusted for offsets;
+and if a meet is derived from an event with a preassigned time, its
+domain must be a subset of the singleton set containing that time.
+@PP
+The point of the first condition is that given a chain of
+assignments beginning at meet @C { m } and ending at a cycle
+meet, the domain of @C { m } must be a superset of the domain
+of the cycle meet, adjusted for offsets.  Since the domain of
+a cycle meet is a singleton set defining a particular time, the
+time assigned to @C { m } by this chain of assignments lies in
+@C { m }'s domain as required.  An unassigned meet will always
+accept a change of domain to a subset of its previous value,
+and a meet to which no other meets are assigned will always
+accept a change to a superset of its previous value.
+@PP
+The superset test is very fast, because time groups contain bit
+vectors of their times as well as arrays of times.  Adjusting for
+offsets is done via function @C { KheTimeGroupNeighbour }
+(Section {@NumberOf time_groups}); the time groups it returns are
+precomputed, so again this is very fast.
+@PP
+The domain of a meet created by @C { KheMeetMake } contains every
+time of the instance, unless the meet is derived from an event
+with a preassigned time, in which case it contains just that
+time.  When a meet is split, the first fragment gets the original
+domain, and the second gets a shifted version, obtained from
+@C { KheTimeGroupNeighbour }.  When two meets are merged, the
+result has the time domain of the meet which comes first in time.
+@PP
+These values satisfy the solution invariant, so they are adequate
+to be going on with.  But when a meet is split, its domain naturally
+changes.  For example, a meet of duration 2 may not begin at the
+last time of the cycle, but if it is split into two fragments of
+duration 1, those fragments usually may.
+@FootNote {
+Constraints on starting times can arise from preferences for events
+to occur on certain days or certain times of the day (including
+preassigned times), and from requiring an event to not stradde a
+break or go off the end.  Arguably, these are independent and should
+be handled separately.  However, the preferred times constraints of
+the XML format combine them, and indeed allow things that cannot be
+explained if they are separated.  So KHE combines them too.
+}
+KHE's platform does not worry about this refinement, but its solvers
+do.  For example, function @C { KheLayerTreeMake }
+(Section {@NumberOf layer_tree_solvers.construction})
+assigns carefully calculated domains to all meets, taking account of
+preassignments, durations, prefer times constraints, and more.
+@PP
+Function
+@ID @C {
+bool KheMeetIsPreassigned(KHE_MEET meet, bool as_in_event, KHE_TIME *t);
+}
+determines whether @C { meet } is preassigned.  If so, it returns
+@C { true } and sets @C { *t } to the time; otherwise it returns
+@C { false }, leaving @C { *t } untouched.  If @C { as_in_event }
+is @C { true }, the meet is considered to be preassigned if it is
+derived from an event with a preassigned time; if @C { as_in_event }
+is @C { false }, the meet is considered to be preassigned if its
+domain contains exactly one element.  Generally speaking, @C { true }
+is needed when handling a fixed solution according to the XML
+specification, while @C { false } is a better choice when solving.
+@PP
+A more general function, useful when solving, is
+@ID @C {
+bool KheMeetIsAssignedPreassigned(KHE_MEET meet, bool as_in_event,
+  KHE_TIME *t);
+}
+This returns @C { true } when @C { meet } or any meets assigned to
+@C { meet }, directly or indirectly, are preassigned in a way that
+forces @C { meet } to be assigned to exactly one time; this time is
+@C { *t }.  Parameter @C { as_in_event } is as for
+@C { KheMeetIsPreassigned }.
+@PP
+Here is the full detail.  If @C { meet } or some meet assigned to
+@C { meet }, directly or indirectly, is preassigned, then, by the
+solution invariant, the time domain of the preassigned meet is
+either empty or a singleton set, and the time domain of @C { meet }
+is a subset of that set, adjusted for offsets; thus, the domain of
+@C { meet } is either empty or a singleton.  The function returns
+@C { true } if @C { meet } or any meet assigned to @C { meet },
+directly or indirectly, is preassigned, and the time domain of
+@C { meet } is a singleton set, setting @C { *t } to its sole member.
+@End @SubSection
+
+@SubSection
+    @Title { Automatic domains }
+    @Tag { solutions.meets.autodomains }
+@Begin
+@LP
+Cycle meets have fixed singleton domains, and meets derived from
+events can also be assigned fixed domains, based on their durations
+and the constraints that apply to them.
+@PP
+When solving hierarchically there may be other meets, lying at
+intermediate levels, for which there is no obvious fixed domain.
+Instead, the domain of such a meet needs to be the largest domain
+consistent with the domains of the meets assigned to it:  the
+intersection of those domains, allowing for offsets, or the full
+set of times if no meets are assigned to it.
+@PP
+As meets are assigned to and unassigned from such a meet, its domain
+changes automatically.  At any moment it does have a domain, however,
+defined by the rule just given, and this domain must satisfy the
+solution invariant as usual.
+@PP
+When a meet is created, it has a fixed domain.  An automatic domain
+is represented by the value @C { NULL }, and so to convert a meet to
+the automatic form the call is
+@ID @C {
+KheMeetSetDomain(meet, NULL);
+}
+This will return @C { false } as usual if @C { meet } is a cycle
+meet.  It will also return @C { false } if @C { meet } is derived
+from an event or contains tasks, as discussed below, but otherwise
+it always returns @C { true }.  @C { KheMeetDomain } returns @C { NULL }
+after such a call.  It is important not to mistake this for `having no
+domain,' a concept not defined by KHE.  Function
+@ID @C {
+KHE_TIME_GROUP KheMeetDescendantsDomain(KHE_MEET meet);
+}
+returns the intersection of the domains of the descendants of
+@C { meet }, including @C { meet } itself, adjusted for offsets,
+or the full time group if there are no such meets or they all
+have automatic domains.  It may thus be used to find the true
+domain of a meet when @C { KheMeetDomain } returns @C { NULL }.
+It may need to create its result via @C { KheSolnTimeGroupBegin },
+@C { KheSolnTimeGroupIntersect }, and @C { KheSolnTimeGroupEnd },
+which will be slow.  It avoids this when one of the time groups to be
+intersected is a subset of all the others, and when there are none.
+@PP
+When a meet with an automatic domain is split, its two fragments have
+automatic domains.  When two meets are joined, they must both either
+have automatic domains or not; and if both do, then the joined meet
+has an automatic domain.
+@PP
+A meet with an automatic domain may not be derived from an event,
+and it may not have tasks.  These two conditions are naturally
+satisfied by the kinds of meets that need automatic domains.
+They are necessary, since otherwise KHE would be forced to
+maintain explicit domains as meets are assigned and unassigned,
+which would not be efficient.  As it is, automatic domains are
+implemented by having the domain test bypass meets whose domains
+are automatic, as though each such meet was replaced by the
+collection of meets assigned to it.
+@PP
+If it is known that the descendants of @C { meet } and their
+domains will not change, there may be efficiency advantages in
+replacing an automatic domain by a fixed one by calling
+@ID @C {
+KheMeetSetDomain(meet, KheMeetDescendantsDomain(meet));
+}
+This avoids domain checking in @C { meet }'s descendants when
+@C { meet } is assigned and unassigned.  The time saved will
+not usually be significant relative to overall solve time.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Tasks }
+    @Tag { solutions.tasks }
+@Begin
+@LP
+A task is created by calling
+@ID @C {
+KHE_TASK KheTaskMake(KHE_SOLN soln, KHE_RESOURCE_TYPE rt,
+  KHE_MEET meet, KHE_EVENT_RESOURCE er);
+}
+The task lies in @C { soln } and has resource type @C { rt }.
+The next parameter, @C { meet }, is optional.  When present
+it causes the task to lie within @C { meet }, representing
+a demand for one resource, of type @C { rt }, at the times
+when @C { meet } is running.  If @C { meet } is absent, the
+task still demands a resource, but at no times, making it
+useful only as a target for the assignment of other tasks,
+as explained below.
+@PP
+The last parameter, @C { er }, may be non-@C { NULL } only when
+@C { meet } is non-@C { NULL } and derived from some event
+@C { e }.   In that case, @C { er } must be one of @C { e }'s
+event resources.  Its presence causes the task to consider
+itself to have been derived from event resource @C { er }.
+@PP
+When first created, a meet has no tasks.  They must be created
+separately by calls to @C { KheTaskMake }.  Function
+@C { KheSolnMakeCompleteRepresentation }
+(Section {@NumberOf solutions.complete}) does this.  When a
+task's enclosing meet splits, the task splits too.  And when
+two meets merge, their tasks must be compatible and are merged
+pairwise, inversely to the split.
+@PP
+A task contains an optional @I { assignment } to another task,
+and a @I { resource domain } which restricts the resources it
+may be assigned to an arbitrary subset of the resources of its
+type.  These attributes are described in detail in later sections.
+@PP
+A task may be deleted by calling
+@ID @C {
+void KheTaskDelete(KHE_TASK task);
+}
+This includes removing the task from its meet, if any, and
+unassigning any assignments involving the task.
+@PP
+The back pointer of a task may be set and retrieved by
+@ID @C {
+void KheTaskSetBack(KHE_TASK task, void *back);
+void *KheTaskBack(KHE_TASK task);
+}
+as usual, and the usual visit number operations are available:
+@ID @C {
+void KheTaskSetVisitNum(KHE_TASK task, int num);
+int KheTaskVisitNum(KHE_TASK task);
+bool KheTaskVisited(KHE_TASK task, int slack);
+void KheTaskVisit(KHE_TASK task);
+void KheTaskUnVisit(KHE_TASK task);
+}
+The attributes of a task related to its meet
+may be retrieved by
+@ID @C {
+KHE_MEET KheTaskMeet(KHE_TASK task);
+int KheTaskIndexInMeet(KHE_TASK task);
+int KheTaskDuration(KHE_TASK task);
+float KheTaskWorkload(KHE_TASK task);
+}
+If there is no meet, @C { KheTaskMeet } returns
+@C { NULL } and @C { KheTaskDuration } and @C { KheTaskWorkload }
+return 0.  If there is a meet and event resource,
+@C { KheTaskWorkload } returns the workload of the task, defined
+in accord with the XML format's definition to be
+@ID @Math { w(task) = d(meet)w(er) over d(e) }
+where @M { d(meet) } is the duration of @C { task }'s
+meet, @M { w(er) } is the workload of the task's event resource,
+and @M { d(e) } is the duration of the task's meet's
+event.  See below for the similar and more generally useful
+@C { KheTaskTotalDuration } and @C { KheTaskTotalWorkload }
+operations.  Other attributes of a task may be accessed by
+@ID @C {
+KHE_SOLN KheTaskSoln(KHE_TASK task);
+int KheTaskIndexInSoln(KHE_TASK task);
+KHE_RESOURCE_TYPE KheTaskResourceType(KHE_TASK task);
+KHE_EVENT_RESOURCE KheTaskEventResource(KHE_TASK task);
+}
+These return the solution containing @C { task }, the index
+of @C { task } in its solution (the value of @C { i } for
+which @C { KheSolnTask(soln, i) } returns @C { task }), the
+task's resource type, and its event resource (if any).  Index
+numbers may change when tasks are deleted (what actually
+happens is that the hole left by the deletion of a task, if
+not last, is plugged by the last task), so care is needed.
+@PP
+A task may lie in a @I { tasking }, which is a set of tasks
+(Section {@NumberOf extras.taskings}).  Function
+@ID @C {
+KHE_TASKING KheTaskTasking(KHE_TASK task);
+}
+returns the tasking containing @C { task }, or @C { NULL } if none.
+Finally,
+@ID @C {
+void KheTaskDebug(KHE_TASK task, int verbosity, int indent, FILE *fp);
+}
+produces the usual debug print of @C { task } onto @C { fp } with the
+given verbosity and indent.
+@BeginSubSections
+
+@SubSection
+    @Title { Task assignment }
+    @Tag { solutions.tasks.asst }
+@Begin
+@LP
+A task represents one job that one resource has to do, so it may
+be unassigned, or it may be assigned one resource, meaning that
+the resource attends the task's meet, if any, at all
+of its times.
+@PP
+Following the XML format, a task may be assigned only one resource,
+which is then occupied for the entire duration of the enclosing meet.
+Other formulations (e.g. KTS @Cite { $kingston2007kts_paper }) allow
+the task to be assigned different resources at different times of the
+enclosing meet.
+@PP
+Resources are assigned to tasks using functions like those for
+assigning times to meets:
+@ID @C {
+bool KheTaskAssignResourceCheck(KHE_TASK task, KHE_RESOURCE r);
+bool KheTaskAssignResource(KHE_TASK task, KHE_RESOURCE r);
+void KheTaskUnAssignResource(KHE_TASK task);
+KHE_RESOURCE KheTaskAsstResource(KHE_TASK task);
+}
+As usual, @C { KheTaskAssignResourceCheck } checks that the assignment is
+allowed by the solution invariant; @C { KheTaskAssignResource } carries
+it out if so.  @C { KheTaskUnAssignResource } unassigns @C { task }; this
+cannot violate the invariant.  KHE aborts if an attempt is made to assign
+a resource to a task which is already assigned, or to unassign one that
+is not assigned.  @C { KheTaskAsstResource } returns the resource
+currently assigned, or @C { NULL } if none.
+@PP
+To find the tasks assigned a given resource, either directly
+or indirectly via other tasks (for which see below), call
+@ID @C {
+int KheResourceAssignedTaskCount(KHE_SOLN soln, KHE_RESOURCE r);
+KHE_TASK KheResourceAssignedTask(KHE_SOLN soln, KHE_RESOURCE r, int i);
+}
+When a resource @C { r } is assigned to a task, the task and all
+tasks assigned to it, directly or indirectly, go on the end of
+@C { r }'s sequence.  When @C { r } is deassigned from a task,
+the task and all tasks assigned to it, directly or indirectly,
+are removed, and the gaps are plugged by tasks taken from the
+end.  The sequence does not include @C { r }'s cycle task (for
+which see below).
+@PP
+As for meets, one task may be assigned to another, meaning that
+whatever assignment the other task has, so does the first.
+This is a convenient way to say that the two tasks must be
+assigned the same resource, because they are connected by an
+avoid split assignments constraint.  Arbitrarily deep hierarchies
+are permitted, but in practice they seem not to be needed.
+@PP
+The general task assignment operations are
+@ID @C {
+bool KheTaskAssignCheck(KHE_TASK task, KHE_TASK target_task);
+bool KheTaskAssign(KHE_TASK task, KHE_TASK target_task);
+void KheTaskUnAssign(KHE_TASK task);
+KHE_TASK KheTaskAsst(KHE_TASK task);
+}
+These work in the same way as meet assignment, minus the
+offset.  @C { KheTaskAssignCheck } aborts if @C { task }
+is already assigned, or is a cycle task (see below).  Otherwise
+assignment is permitted if the domain of @C { task } is a
+superset of the domain of @C { target_task } (see below for task
+domains).  @C { KheTaskAsst } returns the task that @C { task }
+is assigned to, or @C { NULL } if none.
+#There is also
+#@ID @C {
+#KHE_TASK KheTaskRootTask(KHE_TASK task);
+#}
+#which returns the last task on the chain of assignments leading out of
+#@C { task }.  This will be @C { task } itself if it is unassigned, or a
+#cycle task if @C { task } is assigned a resource.  Even more useful is
+#@ID @C {
+#KHE_TASK KheTaskRootNonCycleTask(KHE_TASK task);
+#}
+#This returns the last non-cycle task on the chain of assignments
+#leading out of @C { task } (which must itself be a non-cycle task).
+#This is often the task that needs to be reassigned when there is
+#a problem with the assignment of @C { task }.
+@PP
+To access the set of tasks assigned directly to a target task, call
+@ID @C {
+int KheTaskAssignedToCount(KHE_TASK target_task);
+KHE_TASK KheTaskAssignedTo(KHE_TASK target_task, int i);
+}
+in the usual way.  Functions
+@ID @C {
+int KheTaskTotalDuration(KHE_TASK task);
+float KheTaskTotalWorkload(KHE_TASK task);
+}
+return the total duration and workload of @C { task } and the tasks
+assigned to it, directly or indirectly.  These functions are usually
+more appropriate than @C { KheTaskDuration } and @C { KheTaskWorkload }.
+@PP
+Just as there are cycle meets to represent the times of the cycle,
+so there are @I { cycle tasks } to represent the resources of the
+instance.  There is one cycle task for each resource of the instance,
+and assigning a resource to a task is implemented as an assignment
+of the task to the resource's cycle task.  The first
+@C { KheInstanceResourceCount } tasks of a solution are its cycle
+tasks, in the order the resources are stored in the instance.
+# Function
+# @ID @C { bool KheTaskIsCycleTask(KHE_TASK task); }
+# returns @C { true } when @C { task } is a cycle task.
+#@PP
+#There is a way to classify tasks into three categories that turns
+#out to be very useful in practice.  The categories are called
+#@I { states }, and function
+#@ID @C {
+#KHE_TASK_STATE KheTaskState(KHE_TASK task);
+#}
+#returns the state of @C { task }, one of these three values:
+#@ID @C {
+#typedef enum {
+#  KHE_TASK_STATE_CYCLE,
+#  KHE_TASK_STATE_LEADER,
+#  KHE_TASK_STATE_FOLLOWER
+#} KHE_TASK_STATE;
+#}
+#A cycle task has state @C { KHE_TASK_STATE_CYCLE }, and this
+#cannot change.  Other tasks change their state depending on how
+#they are assigned.  A non-cycle task which is either not assigned
+#at all or assigned to a cycle task has state @C { KHE_TASK_STATE_LEADER },
+#and a non-cycle task currently assigned to a non-cycle task has state
+#@C { KHE_TASK_STATE_FOLLOWER }.  A leader task is the root of a
+#a tree of follower tasks which it is responsible for:  resource
+#assignment algorithms are typically concerned only with assigning or
+#reassigning leader tasks.
+@PP
+There is a useful three-way classification of tasks, into
+@I { cycle tasks }, @I { leader tasks }, and @I { follower tasks }.
+A cycle task, as we have seen, represents a resource.  It cannot be
+assigned, only assigned to.  A @I { leader task } is a non-cycle
+task which is either unassigned or assigned to a cycle task.  A
+@I { follower task } is any other task:  a non-cycle task assigned
+to another non-cycle task.  The point of the terminology is that a
+follower task relinquishes responsibility for itself to its leader.
+Resource assignment algorithms are concerned with assigning or
+reassigning leader tasks.
+@PP
+The following functions implement this classification:
+@ID @C {
+bool KheTaskIsCycle(KHE_TASK task);
+bool KheTaskIsLeader(KHE_TASK task);
+bool KheTaskIsFollower(KHE_TASK task);
+}
+# The information is the same, but the form is often more convenient
+# to use.
+There are also two functions which follow chains of task
+assignments.  The first is the simplest:
+@ID @C {
+KHE_TASK KheTaskRoot(KHE_TASK task);
+}
+It follows the chain of assignments out of @C { task } to the end,
+and returns the end task (possibly @C { task } itself), which is
+called a @I { root task } because it lies at the root of a tree of
+assigned tasks.  It could be either a leader task or a cycle task.
+The other chain-follower is
+@ID @C {
+KHE_TASK KheTaskLeader(KHE_TASK task);
+}
+Here @C { task } may not be a cycle task.  It follows the chain of
+assignments out of @C { task } until it reaches a leader task (possibly
+@C { task } itself), and returns that task.  For a deeper analysis
+of cycle, leader, and follower tasks, see
+Section {@NumberOf resource_solvers.task_trees}.
+@End @SubSection
+
+@SubSection
+    @Title { Moving and swapping }
+    @Tag { solutions.tasks.moving }
+@Begin
+@LP
+In addition to the fundamental operations of assigning and
+unassigning tasks, KHE offers operations for moving and
+swapping them.  To move a task (that is, to change its
+assignment from one resource or task to another), call
+@ID @C {
+bool KheTaskMoveCheck(KHE_TASK task, KHE_TASK target_task);
+bool KheTaskMove(KHE_TASK task, KHE_TASK target_task);
+bool KheTaskMoveResourceCheck(KHE_TASK task, KHE_RESOURCE r);
+bool KheTaskMoveResource(KHE_TASK task, KHE_RESOURCE r);
+}
+As usual, @C { KheTaskMoveCheck } merely checks that the move
+is possible, while @C { KheTaskMove } carries it out as well
+if so.  @C { KheTaskMoveResourceCheck } and @C { KheTaskMoveResource }
+just call @C { KheTaskMoveCheck } and @C { KheTaskMove } after
+converting @C { r } into a cycle task.
+@PP
+These functions share the idiosyncracies of the functions that move
+meets:  the current assignment may be @C { NULL }, in
+which case the move is just an assignment; the target of the move
+may be @C { NULL }, in which case the move is an unassignment; and
+@C { false } is returned when the move would change nothing.  The
+idea is that only moves which genuinely move something are allowed,
+because no solver wants to waste time on moves that change nothing.
+@PP
+To swap the assignments of two tasks, call
+@ID @C {
+bool KheTaskSwapCheck(KHE_TASK task1, KHE_TASK task2);
+bool KheTaskSwap(KHE_TASK task1, KHE_TASK task2);
+}
+As for time swaps, exchanging the parameters changes nothing, and
+code fragment
+@ID @C {
+if( KheTaskSwap(task1, task2) )
+  KheTaskSwap(task1, task2);
+}
+leaves the solution in its original state whether the swap occurs or
+not.
+@PP
+Again, the idiosyncracies of moves are shared by swaps.  One of
+@C { task1 } and @C { task2 } may be unassigned, in which case
+the other will become unassigned if the operation succeeds.  And
+the functions return @C { false } when the swap would change
+nothing:  when the two tasks are assigned the same task,
+or are both unassigned.
+@End @SubSection
+
+@SubSection
+    @Title { Resource preassignment and resource domains }
+    @Tag { solutions.tasks.domains }
+@Begin
+@LP
+A resource may be preassigned to a task by calling
+@ID @C {
+bool KheTaskPreassignCheck(KHE_TASK task, KHE_RESOURCE r);
+bool KheTaskPreassign(KHE_TASK task, KHE_RESOURCE r);
+}
+This does not assign @C { r } to @C { task }; rather, it makes it
+impossible (a violation of the solution invariant) to assign any
+other resource to @C { task }.  The operations return @C { false }
+only when @C { task } is already assigned elsewhere.  When @C { task }
+is preassigned, function
+@ID { 0.98 1.0 } @Scale @C {
+bool KheTaskIsPreassigned(KHE_TASK task, bool as_in_event_resource,
+  KHE_RESOURCE *r);
+}
+returns @C { true } and sets @C { *r } to the resource; otherwise it
+returns @C { false }, leaving @C { *r } untouched.  If
+@C { as_in_event_resource } is @C { true }, the task is considered to be
+preassigned if it is derived from an event resource with a preassigned
+resource; if @C { as_in_event_resource } is @C { false }, the task is
+considered to be preassigned if its domain (see below) contains exactly
+one element.  Generally speaking, @C { true } is needed when handling
+a fixed solution according to the XML specification, while @C { false }
+is a better choice when solving.
+@PP
+Resource preassignment is a special case of @I { resource domains }.
+Each task has a resource domain, which is a resource group.  It is
+an unbreakable constraint (part of the solution invariant) that the
+resource assigned to a task must be an element of its domain.
+Preassigning a resource is the same as setting the domain to a
+singleton resource group containing that resource.  The operations
+which handle resource domains in general are
+@ID @C {
+bool KheTaskSetDomainCheck(KHE_TASK task, KHE_RESOURCE_GROUP rg,
+  bool recursive);
+bool KheTaskSetDomain(KHE_TASK task, KHE_RESOURCE_GROUP rg,
+  bool recursive);
+KHE_RESOURCE_GROUP KheTaskDomain(KHE_TASK task);
+}
+As usual, the first checks whether the resource domain of @C { task }
+may be set to @C { rg }; the second sets the resource domain if
+possible; and the third returns the resource domain.  There are also
+@ID @C {
+bool KheTaskTightenDomainCheck(KHE_TASK task, KHE_RESOURCE_GROUP rg,
+  bool recursive);
+bool KheTaskTightenDomain(KHE_TASK task, KHE_RESOURCE_GROUP rg,
+  bool recursive);
+}
+which test whether the domain of @C { task } can be set to its
+intersection with @C { rg }, and do so if so.
+@PP
+The domain of a task must be a superset of the domain of the task
+it is assigned to, if any.  This condition, which is part of the
+solution invariant, implies that if a resource is assigned to a
+task, the domain must contain that resource (because the cycle
+task's domain contains it).  A task's domain may be set to
+@C { rg } if @C { rg } is a superset of the domain of the task
+that @C { task } is assigned to, if any, and the domains of all
+tasks which are assigned to @C { task } are supersets of @C { rg }.
+@PP
+When parameter @C { recursive } is @C { true }, in addition to
+changing the domain of @C { task } itself, all these functions
+set the domains of all tasks which are assigned to @C { task },
+directly or indirectly, to the same domain that they give to
+@C { task }.  This is usually the most useful thing to do, since
+when one task is assigned to another, typically the intention is
+to hand over all responsibility to the other task.  Without
+@C { recursive }, changing (in particular, enlarging) the domain
+of a parent task could be prohibited by the solution invariant.
+@PP
+The resource group may be from the instance, or it may be created during
+solving (Section {@NumberOf solutions.groups}).  Although setting
+the domain of a task is fast, creating a resource group is less so.
+It is best, where possible, to keep resource group creation out of
+the inner loops of the solve.  Resource groups are immutable during
+solving, so they may be shared.
+@PP
+The initial domain given to a task created by
+@C { KheTaskMake(soln, rt, ...) } is the obvious singleton resource group
+if the task is derived from an event resource with a preassignment, and
+the largest legal domain, @C { KheResourceTypeFullResourceGroup(rt) },
+otherwise.  A task created by a meet split or merge has the domain
+of its progenitors (these must be equal in the case of a merge).
+These values can be changed.  For example, @C { KheTaskTreeMake }
+(Section {@NumberOf resource_solvers.task_tree.construction})
+installs domains which depend on the domains of the event
+resources that the tasks are derived from, and the avoid split
+assignments constraints that join those event resources.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Transactions }
+    @Tag { solutions.transactions }
+@Begin
+@LP
+Suppose you want to make the best possible time assignment for
+a meet.  You try each time assignment operation in turn,
+remembering the best assignment so far and the solution cost it
+produced, then finish off by making the best assignment.
+@PP
+But now suppose that the alternative operations are more
+complicated.  For example, they might be Kempe time moves
+(Section {@NumberOf time_solvers.kempe}), each of which consists
+of an unpredictable number of time assignments.  The same program
+structure works, but remembering the best operation and undoing one
+operation are much more complicated.  Transactions solve this problem.
+@PP
+A @I transaction is a sequence of operations that change a solution,
+packaged together in an object of type @C { KHE_TRANSACTION }.  Functions
+@ID @C {
+KHE_TRANSACTION KheTransactionMake(KHE_SOLN soln);
+void KheTransactionDelete(KHE_TRANSACTION t);
+}
+create a transaction and delete it, but do nothing else.  Function
+@ID @C {
+KHE_SOLN KheTransactionSoln(KHE_TRANSACTION t);
+}
+returns @C { t }'s solution.  To record operations in a transaction,
+call
+@ID @C {
+void KheTransactionBegin(KHE_TRANSACTION t);
+void KheTransactionEnd(KHE_TRANSACTION t);
+}
+They must occur in matching pairs.  In between may come operations
+that change @C { soln }, and these are recorded in the transaction
+so that they can be undone, redone, etc.  @C { KheTransactionBegin }
+begins by clearing away any operations that may have been recorded
+in @C { t } previously.  For example, assuming that @C { t } has been
+created by @C { KheTransactionMake },
+@ID @C {
+KheTransactionBegin(t);
+KheMeetAssign(meet1, meet2, 0);
+KheMeetAssign(meet3, meet2, 1);
+KheTransactionEnd(t);
+}
+records the two operations within @C { t }, as well as performing
+them as usual.  There is no requirement that the operations appear in
+straight-line code like the example.  Any code at all can be executed
+between @C { KheTransactionBegin } and @C { KheTransactionEnd }.
+It is not the program that is recorded, rather the operations
+it calls, their parameters and results, and any old values that
+are replaced (these are recorded so that they can be restored if
+the transaction is undone later).
+@PP
+In principle, every operation that changes the state of the
+solution should be recorded in a transaction, but in fact
+only these ones are recorded:
+@ID @OneRow @Tbl
+   aformat { @Cell A | @Cell B |8s @Cell C | @Cell D }
+{
+@Rowa ma { 0i }
+A { @C {
+C
+D
+} }
+B { @C {
+KheMeetMake
+KheMeetDelete
+KheMeetAssign
+KheMeetUnAssign
+KheMeetSetDomain
+} }
+C { @C {
+C
+D
+} }
+D { @C {
+KheTaskMake
+KheTaskDelete
+KheTaskAssign
+KheTaskUnAssign
+KheTaskSetDomain
+} }
+
+@Rowa ma { 1v } mb { 0i }
+A { @C {
+C
+D
+} }
+B { @C {
+KheMeetSplit
+KheMeetMerge
+} }
+D { @C {
+KheNodeAddParent
+KheNodeDeleteParent
+} }
+}
+and only when successful.  The @C { C } and @C { D } flags indicate
+whether the operation creates or deletes any objects; this is
+significant for the undo and redo operations below.  Helper
+functions are expanded:  a swap is recorded as two deassignments
+followed by two assignments, for example, and @C { KheNodeMove }
+is recorded, quite correctly, as a sequence
+of @C { KheMeetUnAssign }, @C { KheNodeDeleteParent },
+@C { KheNodeAddParent }, and @C { KheMeetAssign } operations.
+@PP
+When a call on @C { KheMeetAssign } is followed by a call on
+@C { KheMeetUnAssign } applied to the same meet, both are
+removed from the stored sequence, since they cancel each other.
+When a call on @C { KheMeetUnAssign } is followed by a call on
+@C { KheMeetAssign }, they are removed when the second restores
+the value removed by the first.  Two or more adjacent calls on
+@C { KheMeetSetDomain } for the same meet will also be removed
+if they cancel, and if not, they will be compressed into a single
+call.  Similar optimizations are carried out on calls on tasks.
+There are cases where transactions are constructed while trying
+alternatives, yet these optimizations ensure that the minimum
+possible number of calls is made when they are undone or redone.
+@PP
+Calls to @C { KheTransactionBegin } and @C { KheTransactionEnd }
+for different transactions are quite independent of each other.
+For example, even the following unlikely example will work:
+@ID @C {
+t1 = KheTransactionBegin(soln);
+KheMeetAssign(meet1, meet2, 0);
+t2 = KheTransactionBegin(soln);
+KheMeetAssign(meet3, meet2, 1);
+KheTransactionEnd(t1);
+KheMeetUnAssign(meet3, meet2, 1);
+KheTransactionEnd(t2);
+}
+As each operation occurs, it is recorded in each transaction
+for which @C { KheTransactionBegin } has been called but the
+corresponding call to @C { KheTransactionEnd } has not.
+@PP
+Function
+@ID @C {
+void KheTransactionUndo(KHE_TRANSACTION t);
+}
+may be called to @I undo a transaction, that is, to execute, in
+reverse order, the inverses of its operations: where the original
+sequence assigns a time, @C { KheTransactionUndo } unassigns it;
+where the original sequence unassigns a meet,
+@C { KheTransactionUndo } assigns it, using a target
+meet and offset recorded when the original unassign was
+executed; and so on.
+@PP
+It is safest to call @C { KheTransactionUndo } only when the state
+of the solution is identical to what it was when the call to
+@C { KheTransactionEnd } which completed the transaction was
+called.  Otherwise it might try to assign a meet that is
+already assigned, refer to a deleted object, etc.
+@PP
+It is also possible to redo a transaction:
+@ID @C {
+void KheTransactionRedo(KHE_TRANSACTION t);
+}
+This repeats the sequence of operations from the front.  Again, it
+is safest if the solution is in the state it was in when the call
+to @C { KheTransactionBegin } which initiated the transaction was
+made.  This probably means that an undo should precede the redo,
+but no-one is checking.
+@PP
+If a transaction contains operations which create new objects
+(anything marked @C { C } above) it may be undone but not redone.
+This is because there is little chance that the new objects will
+go in the same memory locations as the originals, causing
+references to them later in the transaction to be invalid
+the second time around.  Undoing object-creating operations,
+on the other hand, turns out to be safe and causes the objects
+to be deleted or merged as appropriate.
+@PP
+If a transaction contains operations which delete objects
+(anything marked @C { D } above) it may be neither undone
+nor redone.  This is because undoing deletions requires
+creations, and there is little chance that the new objects
+will go in the same memory locations as the originals,
+causing references to them earlier in the transaction to
+be invalid during the undo.  Without undo it makes no
+sense to redo a transaction that deletes something, since
+you can't delete it twice.
+@PP
+A transaction must have ended before it may be passed to
+@C { KheTransactionUndo } or @C { KheTransactionRedo }.  If
+some other transaction is undone or redone while a transaction
+is being constructed, that is equivalent to executing the
+operations carried out by the undo or redo.
+@PP
+A transaction can be copied at any time, by calling
+@ID @C {
+void KheTransactionCopy(KHE_TRANSACTION src_t, KHE_TRANSACTION dst_t);
+}
+The entire current state of @C { dst_t } is replaced by an
+independent copy of the state of @C { src_t }, which itself may
+be in any state and is unaffected by the copy.  The copy is
+considered to have ended, whether or not @C { src_t } is ended.
+@PP
+An application of copying occurs in tree searching.  A transaction
+monitors the operations applied down to some point in the tree,
+and then if the solution at that point is the best so far, the
+transaction is copied.  After the tree search ends, the copied
+transaction is redone to install the best solution found.
+@C { KheEjectorLongSolve } (Section {@NumberOf ejection.extended})
+uses transaction copying in this way.
+@PP
+When using transactions, care must be taken that they do not grow
+to enormous length.  For example, they should not be used to record
+the paths taken by wandering methods such as tabu search.  When
+used with tree searches, if the operations are meet assignments,
+say, and are undone by meet unassignments, then the optimizations
+described above will keep the length of the transaction equal to
+the tree depth.  If the operations are more complex (swaps, Kempe
+moves, and so on), they should be enclosed in transactions and
+undone by undoing the transactions, to guarantee a strict reversal
+which ensures that the optimizations will apply.
+@PP
+As an aid to debugging, function
+@ID @C {
+void KheTransactionDebug(KHE_TRANSACTION t, int verbosity,
+  int indent, FILE *fp)
+}
+sends a debug print of @C { t } to @C { fp } with the given
+verbosity and indent in the usual way.  The transaction only
+stores (and hence can only print) what it needs for undoing
+and redoing.  Verbosity 2 or higher is not safe when the
+transaction contains operations that delete objects.
+@End @Section
+
+@Section
+    @Title { The solution invariant }
+    @Tag { solutions.invariant }
+@Begin
+@LP
+Here is the condition, called the solution invariant, that every
+solution always satisfies.  The last three rules relate to data
+types introduced in Chapter {@NumberOf extras}.
+@NumberedList
+
+# @LI {
+# If meet @C { meet } is preassigned time @M { t } (if it is
+# derived from an instance event which is preassigned time @M { t })
+# then the current time domain of @C { meet } is a subset of
+# @M { lbrace t rbrace };
+# }
+
+@LI {
+The @I { meet rule }:  if @C { meet } is assigned
+to @C { target_meet } at offset @C { target_offset }, then:
+@ParenAlphaList
+
+@LI {
+The value of @C { target_offset } is at least 0 and at most the
+duration of @C { target_meet } minus the duration of @C { meet };
+}
+
+@LI {
+The time domain of @C { target_meet }, shifted right @C { target_offset }
+places, is a subset of the time domain of @C { meet };
+}
+
+@RawEndList
+}
+
+@LI {
+The @I { task rule }:  if @C { task } is assigned to @C { target_task },
+then the resource domain of @C { target_task } is a subset of the
+resource domain of @C { task }.
+}
+
+@LI {
+The @I { cycle rule }:  the parent links of nodes may not form a cycle.
+}
+
+@LI {
+The @I { node rule }:  if meet @C { meet } is assigned to
+meet @C { target_meet } and lies in node @C { n }, then @C { n }
+has a parent node and @C { target_meet } lies in that parent node.
+}
+
+@LI {
+The @I { layer rule }:  every node of a layer has the same parent
+node as the layer.
+}
+
+@EndList
+No sequence of operations can bring a solution to a state that
+violates this invariant.
+@End @Section
+
+#@Section
+#    @Title { Support for displaying solutions }
+#    @Tag { solutions.display }
+#@Begin
+#@LP
+#Apart from @C { KheTimetableMonitorPrintTimetable }, KHE does not
+#contain any code to actually display timetables.  However, as
+#documented in this section, it does offer some data types and
+#functions which assist in displaying timetables.
+#@PP
+#Type @C { KHE_CYCLE } represents a cycle (the set of all times
+#of an instance), organized for display.  Type @C { KHE_WEEK }
+#represents one week (or the entire cycle if the instance has
+#no weeks), and type @C { KHE_DAY } represents one day.  To
+#create or delete a cycle object, call
+#@ID @C {
+#KHE_CYCLE KheCycleMake(KHE_SOLN soln);
+#void KheCycleDelete(KHE_CYCLE cycle);
+#}
+#Notice that cycles depend on solutions, not instances, for a
+#particular reason that will become clear shortly.
+#@PP
+#There are two main kinds of timetables.  @I { Individual timetables }
+#show what one resource is doing, and are conventionally organized
+#with one table per week, each containing one column per day.
+#@I { Planning timetables } are large timetables that show what an
+#entire set of resources is doing, with one column per time and
+#one row per resource.
+#@PP
+#Cycle objects offer operations which support the display of
+#individual timetables, beginning with
+#@ID @C {
+#bool KheCycleSupportsIndividual(KHE_CYCLE cycle);
+#int KheCycleWeekCount(KHE_CYCLE cycle);
+#KHE_WEEK KheCycleWeek(KHE_CYCLE cycle, int i);
+#}
+#The first returns @C { true } if @C { cycle }'s solution's
+#instance has @C { Day } time groups, and optionally @C { Week }
+#time groups, which make sufficient sense to allow meaningful
+#individual timetables to be printed.  In that case,
+#@C { KheCycleWeekCount } and @C { KheCycleWeek } return the
+#weeks of the cycle in chronological order.  If the instance
+#has @C { Day } time groups but not @C { Week } time groups,
+#all the times are placed into a single artificial week, so
+#@C { KheCycleWeekCount } returns 1 and @C { KheCycleWeek }
+#returns a week containing all the days.
+#@PP
+#The following operations apply to weeks:
+#@ID @C {
+#KHE_TIME_GROUP KheWeekTimeGroup(KHE_WEEK week);
+#int KheWeekDayCount(KHE_WEEK week);
+#KHE_DAY KheWeekDay(KHE_WEEK week, int i);
+#}
+#The first returns the time group containing all the times of the week.
+#If the @C { KHE_WEEK } object is the artificial week mentioned above,
+#the time group returned is @C { KheInstanceFullTimeGroup(ins) } for
+#the cycle's solution's instance.  The second and third functions
+#return the days of the week.
+#@PP
+#The following operations apply to days:
+#@ID @C {
+#KHE_TIME_GROUP KheDayTimeGroup(KHE_DAY day);
+#int KheDayTimeCount(KHE_DAY day);
+#KHE_TIME KheDayTime(KHE_DAY day, int i);
+#}
+#The first returns the @C { Day } time group defining the day; the
+#second and third return the times of the day, in chronological
+#order.
+#@PP
+#In their basic form, planning timetables do not need display
+#support, since they 
+#Planning timetables have a simple structure.
+#@End @Section
+
+@EndSections
+@End @Chapter

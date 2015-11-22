@@ -1,0 +1,1028 @@
+@Chapter
+    @Title { Monitor Grouping and Tracing }
+    @Tag { grouping }
+@Begin
+@LP
+Monitors can be @I { grouped }, so that the total cost of a set of
+related monitors is held in one place; and they can be @I { traced },
+so that monitors whose cost has changed recently are singled out.
+@BeginSections
+
+@Section
+    @Title { Introduction }
+    @Tag { grouping.intro }
+@Begin
+@LP
+Sometimes we need the cost of a single monitor:  for example, when
+reporting problems to the user.  And we always need the total cost
+of all monitors, since that is the cost of the solution.
+@PP
+Sometimes we need something in between these two extremes:  the
+cost of a set of related monitors.  The main use for this is to
+support ejection chains, but to dispel any misconception that it
+has no general interest, here is a different example.
+@PP
+The Kempe time move, one of the most useful basic operations in
+timetabling, moves a meet from one time to another, and then keeps
+swapping other meets between these two times until there are no more
+clashes between preassigned resources than there were initially.
+Now, how can we tell when this condition has been achieved?  As the
+move progresses, we need continuous access to the current number of
+clashes between preassigned resources, which is equivalent to the
+current total cost of a set of monitors that monitor these clashes.
+@PP
+To support this, the monitors of a solution are organized into a
+tree structure of arbitrary depth, with each monitor reporting its
+cost to its parent monitor.  The picture looks like this:
+@CD @Diag margin { 0.2c } {
+||0.5rt RR:: @Box 2c @Wide 0.9c @High @I Soln
+//0.7c
+||0.5rt GMA:: @Box 2c @Wide 0.9c @High @I { Group @LLP monitor }
+&4c     GMB:: @Box 2c @Wide 0.9c @High @I { Group @LLP monitor }
+//0.7c
+||0.5rt NGA:: @Box 2c @Wide 0.9c @High @I { Non-group monitor }
+&2c     NGB:: @Box 2c @Wide 0.9c @High @I { Non-group monitor }
+&2c     ...
+&2c     NGC:: @Box 2c @Wide 0.9c @High @I { Non-group monitor }
+//0.7c
+||0.5rt SOLN:: @Box 14c @Wide 0.4c @High @I { Solution }
+//
+@Arrow from { GMA } to { RR }
+@Arrow from { GMB } to { RR }
+@Arrow from { NGA } to { GMA }
+@Arrow from { NGB } to { GMA }
+@Arrow from { NGC } to { GMB }
+@Arrow from { SOLN@NW ++ { 0.5c 0 } } to { NGA }
+@Arrow from { SOLN@NW ++ { 1.5c 0 } } to { NGA }
+@Arrow from { SOLN@NW ++ { 2.5c 0 } } to { NGA }
+@Arrow from { SOLN@NW ++ { 5.0c 0 } } to { NGB }
+@Arrow from { SOLN@NW ++ { 6.0c 0 } } to { NGB }
+@Arrow from { SOLN@NW ++ { 7.0c 0 } } to { NGB }
+@Arrow from { SOLN@NE -- { 0.5c 0 } } to { NGC }
+@Arrow from { SOLN@NE -- { 1.5c 0 } } to { NGC }
+@Arrow from { SOLN@NE -- { 2.5c 0 } } to { NGC }
+}
+The leaves of the tree are the @I { non-group monitors }, the
+various kinds of monitors described in previous chapters.  They
+monitor parts of the solution directly.  The internal nodes are
+called @I { group monitors }, because they monitor a set of
+monitors (their children).  The cost of a group monitor is the
+sum of the costs of its children.
+@PP
+The solution object itself is a group monitor (initially, the
+only one).  It supports all the group monitor operations, plus
+the many other operations with which we are already familiar.
+@End @Section
+
+@Section
+    @Title { Group monitors }
+    @Tag { grouping.monitors }
+@Begin
+@LP
+The type of the group monitors just introduced is @C { KHE_GROUP_MONITOR },
+a concrete subtype of @C { KHE_MONITOR },  like @C { KHE_ASSIGN_TIME_MONITOR }
+and the rest.  Type @C { KHE_SOLN } is a subtype of type
+@C { KHE_GROUP_MONITOR }, so upcasts like this:
+@ID @C { (KHE_GROUP_MONITOR) soln }
+are safe, although often unnecessary, since many operations on
+type @C { KHE_GROUP_MONITOR } have @C { KHE_SOLN } versions.
+For example, since @C { KHE_GROUP_MONITOR } is itself a subtype
+of @C { KHE_MONITOR }, the total cost of all monitors could be
+found by calling
+@ID @C { KheMonitorCost((KHE_MONITOR) soln) }
+but of course the @C { KHE_SOLN } version, @C { KheSolnCost }, is
+easier to use.
+@PP
+Every monitor (group or non-group) has at most one parent in
+the tree.  Function
+@ID @C {
+KHE_GROUP_MONITOR KheMonitorParentMonitor(KHE_MONITOR m);
+}
+returns the parent monitor of @C { m }, or @C { NULL } if
+@C { m } has no parent, and
+@ID @C {
+bool KheMonitorDescendant(KHE_MONITOR m1, KHE_MONITOR m2);
+}
+returns @C { true } if @C { m1 } is a descendant of @C { m2 },
+including when the two are equal.
+@PP
+When the solution changes at some point, the change is reported
+to the non-group monitors that monitor that point.  Each updates
+its cost and reports any change to its parent, which updates its
+cost and reports to its parent, and so on until there is no parent.
+The root of the tree is usually the solution object itself, but
+it does not have to be, because the parent links that join
+non-group and group monitors to their parent monitors can be
+added and deleted at will.
+@PP
+Indeed, unlike other types of monitors, group monitors other than
+the solution object can be freely created and deleted.  Function
+@ID @C {
+KHE_GROUP_MONITOR KheGroupMonitorMake(KHE_SOLN soln, int sub_tag,
+  char *sub_tag_label)
+}
+creates a new group monitor with no parent and no children.  It
+is passed the solution as a parameter, and it remembers it, but
+it is not made a child of it.  Functions
+@ID @C {
+int KheGroupMonitorSubTag(KHE_GROUP_MONITOR gm);
+char *KheGroupMonitorSubTagLabel(KHE_GROUP_MONITOR gm);
+}
+return the @C { sub_tag } and @C { sub_tag_label } attributes of
+@C { gm }.  These are used to distinguish kinds of group
+monitors.   If @C { sub_tag_label } is non-@C { NULL }, it is
+printed when debugging.  The values of these attributes in
+solution objects are @C { -1 } and @C { "Soln" }.  The term
+`sub-tag' is used because group monitors already have a tag
+attribute, whose value is @C { KHE_GROUP_MONITOR_TAG }.
+@PP
+A group monitor other than the solution object may be deleted by calling
+@ID @C {
+void KheGroupMonitorDelete(KHE_GROUP_MONITOR gm);
+}
+Its children, if any, will no longer have a parent.  The hole in
+@C { gm }'s parent monitor's list of child monitors is plugged by
+moving the last child monitor of the parent to @C { gm }'s position.
+@PP
+The operations for adding children to a group monitor and removing
+them are
+@ID { 0.95 1.0 } @Scale @C {
+void KheGroupMonitorAddChildMonitor(KHE_GROUP_MONITOR gm, KHE_MONITOR m);
+void KheGroupMonitorDeleteChildMonitor(KHE_GROUP_MONITOR gm, KHE_MONITOR m);
+}
+Here @C { m } could be a non-group monitor or a group monitor.
+Initially, all non-group monitors are made children of the
+solution object, and all of them except demand monitors are
+attached to the solution, so that @C { KheSolnCost } is the total
+cost of all monitors other than demand monitors, making it indeed
+the cost of the solution.  @C { KheGroupMonitorAddChildMonitor }
+makes @C { m } a child of @C { gm }, first removing @C { m } from
+whatever parent it had before, if any (a monitor may have at most
+one parent monitor).  It aborts if this would create a cycle in
+the monitor graph (only possible when @C { m } is a group monitor).
+@C { KheGroupMonitorDeleteChildMonitor } removes @C { m } from
+@C { gm }, leaving @C { m } without a parent.  It aborts if
+@C { m } is not a child of @C { gm }.  The hole created by
+removing @C { m } is plugged by moving the last child monitor
+of @C { gm } to its position.
+@PP
+The child monitors of a group monitor may be visited by
+@ID @C {
+int KheGroupMonitorChildMonitorCount(KHE_GROUP_MONITOR gm);
+KHE_MONITOR KheGroupMonitorChildMonitor(KHE_GROUP_MONITOR gm, int i);
+}
+If @C { gm } is the solution object, these versions of the
+functions allow the user to avoid the upcast:
+@ID @C {
+int KheSolnChildMonitorCount(KHE_SOLN soln);
+KHE_MONITOR KheSolnChildMonitor(KHE_SOLN soln, int i);
+}
+Care is needed when making and deleting group monitors not to
+inadvertently disconnect monitors from the solution.  It is
+usually simplest to make a newly created group monitor a child
+of the solution immediately, like this:
+@ID @C {
+gm = KheGroupMonitorMake(soln, sub_tag, sub_tag_label);
+KheGroupMonitorAddChildMonitor((KHE_GROUP_MONITOR) soln,
+  (KHE_MONITOR) gm);
+}
+And when deleting a group monitor, the best option may be
+helper function
+@ID @C {
+void KheGroupMonitorBypassAndDelete(KHE_GROUP_MONITOR gm);
+}
+It calls @C { KheGroupMonitorDelete }, but first it moves @C { gm }'s
+child monitors so that they are children of @C { gm }'s parent, if
+any, thus keeping them linked in.
+@End @Section
+
+@Section
+    @Title { Defects }
+    @Tag { grouping.defects }
+@Begin
+@LP
+Informally, a defect is a specific problem with a solution.
+In KHE, the word has a formal meaning as well:  a @I defect
+is a monitor whose cost is non-zero.
+@PP
+It can be helpful to target defects directly, rather than wasting
+time changing parts of the solution where there are no defects.
+This is especially the case near the end of the solve process, when
+there may be thousands of monitors but only a handful of defects.
+To support this, KHE offers fast access to those child monitors of
+a group monitor which are defects:
+@ID @C {
+int KheGroupMonitorDefectCount(KHE_GROUP_MONITOR gm);
+KHE_MONITOR KheGroupMonitorDefect(KHE_GROUP_MONITOR gm, int i);
+}
+When a monitor's cost changes from zero to non-zero, the monitor
+is added to its parent's defect list; and when its cost changes
+from non-zero to zero it is removed.  These updates take a
+constant and negligible amount of time.
+@PP
+The defects could appear in any order.  Function
+@ID @C {
+void KheGroupMonitorDefectSort(KHE_GROUP_MONITOR gm);
+}
+sorts the defects by decreasing cost, allowing an algorithm to
+target the worst defects first.  The order is @I not kept up to
+date as the solution changes and defects are added and removed.
+@PP
+When the group monitor is the solution object there are convenience
+versions:
+@ID @C {
+int KheSolnDefectCount(KHE_SOLN soln);
+KHE_MONITOR KheSolnDefect(KHE_SOLN soln, int i);
+void KheSolnDefectSort(KHE_SOLN soln);
+}
+There is also
+@ID @C {
+void KheGroupMonitorDefectDebug(KHE_GROUP_MONITOR gm,
+  int verbosity, int indent, FILE *fp);
+}
+which is like @C { KheMonitorDebug } applied to @C { gm }, except
+that instead of printing all child monitors it prints only the defects.
+@PP
+If a solution is changed and then changed back again to its original
+state, its cost returns to its original value, but there are two ways
+in which its defects can be different.  First, they may appear in a
+different order.  Second, although the number of defects which are
+demand monitors (Chapter {@NumberOf matchings}) must return to its
+original value, the demand monitors that make up that number may
+change.  This is because there are many maximum matchings in general,
+and KHE does not guarantee to find any particular one of them.
+@PP
+In practice, one wants to traverse a list of defects and try to
+repair them.  Quite commonly, an attempt to repair a defect will
+remove it temporarily and then reinstate it if the repair was not
+successful.  This will cause the defect to be shifted to the end
+of the defect list.  A simple traversal of the defects from first
+to last will visit some defects more than once, and others not
+at all.  To handle this problem, KHE offers functions
+@ID @C {
+void KheGroupMonitorCopyDefects(KHE_GROUP_MONITOR gm);
+int KheGroupMonitorDefectCopyCount(KHE_GROUP_MONITOR gm);
+KHE_MONITOR KheGroupMonitorDefectCopy(KHE_GROUP_MONITOR gm, int i);
+}
+plus convenience versions of them for solutions:
+@ID @C {
+void KheSolnCopyDefects(KHE_SOLN soln);
+int KheSolnDefectCopyCount(KHE_SOLN soln);
+KHE_MONITOR KheSolnDefectCopy(KHE_SOLN soln, int i);
+}
+The first function makes a private copy of the list of defects (it
+does not copy the monitors, just the list), and the second and third
+traverse this copied list.  This list does not change until the next
+call to @C { KheGroupMonitorCopyDefects(gm) }, so the problems with
+traversing a changing list are removed.  On the other hand, after the
+solution changes or if the list includes demand monitors, one cannot
+assume that every monitor on the copy list will have non-zero cost.
+@PP
+To find the total cost of all monitors of a given type in
+the subtree rooted at @C { gm }, call
+@ID @C {
+KHE_COST KheGroupMonitorCostByType(KHE_GROUP_MONITOR gm,
+  KHE_MONITOR_TAG tag, int *defect_count);
+}
+It returns the number of defects, in @C { *defect_count }, as well
+as the cost.  It traverses the whole tree of monitors of @C { gm }
+(actually, just the defects), so it is slow:  it is intended for
+reporting, not for solving.  It returns @C { 0 } when @C { tag }
+is @C { KHE_GROUP_MONITOR_TAG }, because it attributes cost to
+the monitors that originally generated it.  Version
+@ID @C {
+KHE_COST KheSolnCostByType(KHE_SOLN soln, KHE_MONITOR_TAG tag,
+  int *defect_count);
+}
+may be called when the group monitor is the solution object.
+The values returned by these functions are displayed in a
+convenient tabular form by functions
+@ID @C {
+void KheGroupMonitorCostByTypeDebug(KHE_GROUP_MONITOR gm,
+  int verbosity, int indent, FILE *fp);
+void KheSolnCostByTypeDebug(KHE_SOLN soln,
+  int verbosity, int indent, FILE *fp);
+}
+which print one line for each kind of monitor under
+@C { gm } or @C { soln } for which there are defects.
+@End @Section
+
+@Section
+    @Title { Tracing }
+    @Tag { grouping.tracing }
+@Begin
+@LP
+Sometimes a solver needs to know which monitors have experienced
+a change in cost recently.  Ejection chain solvers, for example,
+need this information, and @I { monitor tracing } provides it.
+@PP
+Tracing involves objects of type @C { KHE_TRACE }.  To create and
+delete them, call
+@ID @C {
+KHE_TRACE KheTraceMake(KHE_GROUP_MONITOR gm);
+void KheTraceDelete(KHE_TRACE t);
+}
+where @C { gm } is the group monitor to be traced.  The solution
+may be traced by upcasting it:
+@ID @C {
+t = KheTraceMake((KHE_GROUP_MONITOR) soln);
+}
+Actual tracing is initiated and ended by calling
+@ID @C {
+void KheTraceBegin(KHE_TRACE t);
+void KheTraceEnd(KHE_TRACE t);
+}
+These must be called in matching pairs.  @C { KheTraceBegin } removes
+any information left over from any preceding trace, and attaches
+@C { t } to its group monitor so that it can record what happens.
+@C { KheTraceEnd } detaches @C { t } from its group monitor.
+Different trace objects may be attached and detached quite
+independently of each other, even when they have the same group monitor.
+@PP
+After the trace ends, the following functions may be called:
+@ID @C {
+KHE_COST KheTraceInitCost(KHE_TRACE t);
+int KheTraceMonitorCount(KHE_TRACE t);
+KHE_MONITOR KheTraceMonitor(KHE_TRACE t, int i);
+KHE_COST KheTraceMonitorInitCost(KHE_TRACE t, int i);
+}
+@C { KheTraceInitCost } returns the initial cost of @C { t }'s group
+monitor (at the time the trace began); @C { KheTraceMonitorCount }
+returns the number of child monitors of @C { t }'s group monitor
+whose cost changed during the trace; @C { KheTraceMonitor } returns
+the @C { i }th of these child monitors; and
+@C { KheTraceMonitorInitCost(t, i) } returns the initial cost of
+@C { KheTraceMonitor(t, i) }.
+@PP
+These functions may be called during a trace as well as after
+it, returning values as though the trace had just ended.  While it
+is not an error to call @C { KheGroupMonitorAddChildMonitor } or
+@C { KheGroupMonitorDeleteChildMonitor } while tracing the group
+monitor concerned, it is not recommended.  A solution cannot be
+copied while one of its group monitors is being traced.
+@End @Section
+
+@Section
+    @Title { Helper functions for grouping monitors }
+    @Tag { grouping.helper }
+@Begin
+@LP
+Any monitors can be grouped, but some groupings are more useful than
+others.  This section presents helper functions for producing some of the
+more useful groupings.  All of them could be written by the user, using
+@C { KheGroupMonitorMake } and @C { KheGroupMonitorAddChildMonitor }
+from Section {@NumberOf grouping.monitors}; they do not rely on anything
+from behind the scenes.
+@PP
+These helper grouping functions allow any values to be given to the
+sub-tags and sub-tag labels of the group monitors they make.  In
+practice, though, it is convenient to have a standard for these
+values, and KHE establishes such a standard by means of type
+@ID -1px @Break @C {
+typedef enum {
+  KHE_SUBTAG_EVENT,
+  KHE_SUBTAG_EVENT_RESOURCE,
+  KHE_SUBTAG_RESOURCE,
+  KHE_SUBTAG_DEMAND,
+  KHE_SUBTAG_PREASSIGNED_DEMAND,
+  KHE_SUBTAG_UNPREASSIGNED_DEMAND,
+  KHE_SUBTAG_WORKLOAD_DEMAND,
+  KHE_SUBTAG_EVENNESS,
+  KHE_SUBTAG_NODE,
+  KHE_SUBTAG_LAYER,
+  KHE_SUBTAG_TASKING
+} KHE_SUBTAG_STANDARD_TYPE;
+}
+These values should be used for sub-tags wherever appropriate.
+@PP
+Monitor grouping is a delicate matter (indeed, it could be
+described as the Achilles heel of white-box methods), and the
+consequences of grouping in different ways must be considered
+carefully.  The essential points are that all monitors should be
+descendants of the solution object, so that @C { KheSolnCost }
+is truly the cost of the solution, and that certain operations
+(Kempe time moves, for example) should have access to particular
+group monitors that they require.
+@PP
+When grouping for ejection chains, the ideal arrangement is to
+group together those monitors which change together when one
+repair is applied, but it is not always possible to achieve this
+exactly.  For example, one assign time monitor monitors several
+meets, so already contains some grouping which cannot be removed,
+because the monitor has a well-defined cost only when it monitors
+all of the meets derived from a given event.
+@PP
+Another example concerns Kempe time moves.  When a meet is moved, all
+its demand monitors change together, yet it is necessary to group its
+preassigned and unpreassigned demand monitors separately, because
+Kempe time moves take notice only of clashes between preassigned tasks,
+not demand defects in general.  If both kinds were grouped together,
+an increase in preassigned cost could be masked by a decrease in
+unpreassigned cost; or if they were not grouped at all, there would
+be no efficient way to find the clashes.
+@PP
+The following functions are based on a three-dimensional classification
+of groupings:
+@BulletList
+
+@LI {
+@I { Scope }, the part of the solution to be grouped:  the entire
+solution, the descendants of one node, the tasks of one tasking, and
+so on.
+}
+
+@LI {
+@I { Type }, the types of monitors to be grouped:  event monitors,
+demand monitors, and so on.
+}
+
+@LI {
+@I { Granularity }, how finely the monitors are grouped:  all under
+one monitor, or by meet, by node, and so on.
+}
+
+@EndList
+No attempt has been made to cover all points in all dimensions,
+partly because some do not make sense (e.g. grouping a tasking's
+event monitors), and partly because it would take forever.
+@PP
+The functions have an approximately standard form which follows
+this generic example:
+@ID @C {
+void KheScopeGroupTypeMonitorsByGranularity(KHE_ENTITY scope,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+This groups together monitors of the given @C { Type } lying
+within @C { scope } by @C { Granularity }.  A group monitor
+is made only if there is at least one monitor to group under
+it.  It has the given @C { sub_tag } and @C { sub_tag_label }, and
+is made a child of @C { prnt } unless @C { prnt } is @C { NULL },
+when it has no parent.
+@PP
+If @C { assigned_to_node } is non-@C { NULL }, the scope is further
+limited to meets (with their tasks) that are assigned, directly or
+indirectly, to meets lying in @C { assigned_to_node }, or that lie
+directly within that node.  For example, passing the cycle node as
+@C { assigned_to_node } causes meets that have no time assignment
+to be ignored.  Whatever its value, this parameter has no influence
+on grouping workload demand monitors or resource monitors, since
+they do not monitor meets or tasks.  Functions which deal only
+with them have no @C { assigned_to_node } parameter.
+@PP
+When the granularity is as coarse as possible, the template is
+slightly different:
+@ID @C {
+KHE_GROUP_MONITOR KheScopeGroupTypeMonitors(KHE_ENTITY scope,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+The title omits the granularity (it is just the scope), and
+the sole group monitor made is returned.  In the unlikely
+event that there are no monitors to group under it,
+@C { NULL } is returned.
+@PP
+Most group monitors made by these functions have back pointers
+which reflect the granularity.  For example, when grouping by
+meet, the back pointer points to the meet; when grouping by
+node, it points to the node; and so on.
+@BeginSubSections
+
+@SubSection
+    @Title { Event group monitors }
+    @Tag { grouping.helper.event }
+@Begin
+@LP
+An event monitor (Section {@NumberOf monitoring.event_monitors})
+monitors one or more events:  it is either an assign time,
+prefer times, split events, distribute split events, link events,
+or spread events monitor.  An @I { event group monitor } is a
+group monitor whose children are event monitors.  Functions
+@ID @C {
+KHE_GROUP_MONITOR KheSolnGroupEventMonitors(KHE_SOLN soln,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheNodeGroupEventMonitors(KHE_NODE node,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheLayerGroupEventMonitors(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+begin by finding all the meets of @C { soln }, or all the meets
+of @C { node } and its descendants and the meets assigned to
+them directly or indirectly, or all the meets of the nodes of
+@C { layer } and their descendants and the meets assigned to
+them directly or indirectly, excluding some as described earlier
+if @C { assigned_to_node } is non-@C { NULL }.  Then they take
+the events that these meets are derived from and place their
+monitors under a single group monitor, which is returned, unless
+there are no such monitors, in which case @C { NULL } is returned.
+@PP
+The recommended values of @C { sub_tag } and @C { sub_tag_label }
+are @C { KHE_SUBTAG_EVENT } (see above) and @C { "EventGroupMonitor" }.
+The back pointer is set to @C { soln }, @C { node }, or @C { layer }.
+@PP
+More usefully in most cases,
+@ID @C {
+void KheSolnGroupEventMonitorsByClass(KHE_SOLN soln,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheNodeGroupEventMonitorsByClass(KHE_NODE node,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheLayerGroupEventMonitorsByClass(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+begin by finding the same meets as just described.  But then
+they take the events that these meets are derived from, partition
+them into classes, and make one event group monitor for each
+class, whose children are the members of the class.  Two
+event monitors are considered to be related if they monitor
+the same event.  The classes are the equivalence classes of
+the reflexive transitive closure of this relation.  In this
+way, the monitors of events that share spread events or
+link events constraints are grouped together.
+@PP
+The recommended values of @C { sub_tag } and @C { sub_tag_label }
+are @C { KHE_SUBTAG_EVENT } (see above) and @C { "EventGroupMonitor" }.
+Since the classes do not correspond to specific entities, the back
+pointers of the group monitors are set to @C { NULL }.
+@End @SubSection
+
+@SubSection
+    @Title { Event resource group monitors }
+    @Tag { grouping.helper.event_resource }
+@Begin
+@LP
+An event resource monitor
+(Section {@NumberOf monitoring.event_resource_monitors})
+monitors one or more event resources:  it is either an assign
+resource, prefer resources, or avoid split assignments monitor.
+An @I { event resource group monitor } is a group monitor whose
+children are event resource monitors.  Functions
+@ID @C {
+void KheSolnGroupEventResourceMonitorsByClass(KHE_SOLN soln,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheNodeGroupEventResourceMonitorsByClass(KHE_NODE node,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheLayerGroupEventResourceMonitorsByClass(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheTaskingGroupEventResourceMonitorsByClass(KHE_TASKING tasking,
+  KHE_NODE assigned_to_node, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+begin by finding all the tasks of @C { soln }, or all the
+tasks of the meets of @C { node } and its descendants and of
+the meets assigned to them directly or indirectly, or all the
+tasks of the meets of the nodes of @C { layer } and their
+descendants and of the meets assigned to them directly or
+indirectly, or all the tasks of @C { tasking } and the tasks
+assigned to them directly or indirectly.  If @C { assigned_to_node }
+is non-@C { NULL }, tasks lying in meets which are not assigned
+directly or indirectly to meets of @C { assigned_to_node } are
+excluded, as explained earlier.  Then they take the event resources
+that these tasks are derived from, partition these event resources
+into classes, and make one event resource group monitor for each
+class, whose children are the members of the class.  Two event
+resource monitors are considered to be related if they monitor
+the same event resource.  The classes are the equivalence classes
+of the reflexive transitive closure of this relation.
+@PP
+Values @C { KHE_SUBTAG_EVENT_RESOURCE } (see above) and
+@C { "EventResourceGroupMonitor" } are recommended for
+@C { sub_tag } and @C { sub_tag_label }.  Since the classes
+do not correspond to specific entities, the back pointers
+of the group monitors are set to @C { NULL }.
+@End @SubSection
+
+@SubSection
+    @Title { Resource group monitors }
+    @Tag { grouping.helper.resource }
+@Begin
+@LP
+A resource monitor (Section {@NumberOf monitoring.resource_monitors})
+monitors one resource:  it is either an avoid clashes, avoid unavailable
+times, limit idle times, cluster busy times, limit busy times, or limit
+workload monitor.  A @I { resource group monitor } is a group monitor
+whose children are resource monitors (not a monitor of a resource
+group).  Functions
+@ID @C {
+void KheSolnGroupResourceMonitorsByResource(KHE_SOLN soln,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+void KheTaskingGroupResourceMonitorsByResource(KHE_TASKING tasking,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+}
+begin by finding all the resources of @C { soln }'s instance, or
+all the resources assignable to tasks of @C { tasking }.  In the
+second case this is taken to be all the resources of @C { tasking }'s
+solution's instance unless @C { tasking } has a resource type,
+in which case it is all resources of that resource type.  It then
+groups the resource monitors of these resources into one resource
+group monitor per resource, whose children are the resource monitors
+that monitor that resource.
+@PP
+Values @C { KHE_SUBTAG_RESOURCE } and @C { "ResourceGroupMonitor" }
+are recommended for @C { sub_tag } and @C { sub_tag_label }.  The
+back pointers point to the resources.
+@End @SubSection
+
+@SubSection
+    @Title { Demand group monitors }
+    @Tag { grouping.helper.demand }
+@Begin
+@LP
+A demand monitor (Section {@NumberOf matchings.setup}) represents
+one node of the matching:  it is either an ordinary demand monitor,
+monitoring a task, or a workload demand monitor, monitoring a
+resource.  A @I { demand group monitor } is a group monitor whose
+children are demand monitors.
+@PP
+The functions of this section employ a three-way classification
+of demand monitors, into @I { preassigned demand monitors }, which
+are ordinary demand monitors that monitor preassigned tasks;
+@I { unpreassigned demand monitors }, which are ordinary demand
+monitors that monitor unpreassigned tasks; and workload demand
+monitors.  A task is considered to be preassigned when a call to
+@C { KheTaskIsPreassigned } (Section {@NumberOf solutions.tasks.domains}),
+with @C { as_in_event_resource } set to @C { false }, returns @C { true }.
+Functions
+@ID @C {
+KHE_GROUP_MONITOR KheSolnGroupDemandMonitors(KHE_SOLN soln,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, bool include_workload,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheNodeGroupDemandMonitors(KHE_NODE node,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheLayerGroupDemandMonitors(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheMeetGroupDemandMonitors(KHE_MEET meet,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+begin by finding all the demand monitors of @C { soln }, or all
+the demand monitors of the tasks of the meets of @C { node } and
+its descendants and the meets assigned to them, directly or
+indirectly, or all the demand monitors of the tasks of the
+meets of the nodes of @C { layer } and their descendants and
+the the tasks of the meets assigned to those meets, directly
+or indirectly, or all the demand monitors of the tasks of
+@C { meet } and of the meets assigned to it, directly or
+indirectly.  If @C { assigned_to_node } is non-@C { NULL },
+ordinary demand monitors of tasks whose meets are not assigned,
+directly or indirectly, to meets of @C { assigned_to_node }
+are excluded.  They then create and return a single group
+monitor with all these demand monitors grouped under it, unless
+there were none, in which case they return @C { NULL }.
+@PP
+If @C { include_preassigned } is true, preassigned demand monitors are
+included; if @C { include_unpreassigned } is @C { true }, unpreassigned
+demand monitors are included; and if @C { include_workload } is
+@C { true }, workload demand monitors are included.  Any combination
+of these options is acceptable.  The last option is offered only by
+@C { KheSolnGroupDemandMonitors }, because there are no workload demand
+monitors in the scope of the other functions.  The back pointer is
+@C { soln }, @C { node }, @C { layer }, or @C { meet } as usual.
+@PP
+The recommended sub-tags and sub-tag labels are
+@C { KHE_SUBTAG_PREASSIGNED_DEMAND } and @C { "PreassignedDemandGroupMonitor" }
+when only preassigned demand monitors are included,
+@C { KHE_SUBTAG_UNPREASSIGNED_DEMAND } and
+@C { "UnpreassignedDemandGroupMonitor" } when only unpreassigned
+demand monitors are included,
+@C { KHE_SUBTAG_WORKLOAD_DEMAND } and @C { "WorkloadDemandGroupMonitor" }
+when only workload demand monitors are included, and
+@C { KHE_SUBTAG_DEMAND } and @C { "DemandGroupMonitor" } when
+all are included.
+@PP
+During resource assignment, the maintenance of the resource
+assignment invariant by an ejection chain algorithm requires a
+single group monitor holding all the demand monitors of the
+solution.  This group monitor is created by calling
+@ID @C {
+KheSolnGroupDemandMonitors(soln, true, true, true,
+  KHE_SUBTAG_DEMAND, "DemandGroupMonitor", NULL);
+}
+Other algorithms preserve the invariant by consulting
+@C { KheSolnMatchingDefectCount }, which raises the question of why
+@C { KheSolnMatchingDefectCount } exists at all, if its work can be
+done by a group monitor.  The answer is that, for good reasons, the
+author's implementation of bipartite matching includes a list of
+the unmatched demand nodes, and since there is no extra cost in
+making this list available to the user, that has been done.
+@PP
+Demand monitors may also be grouped by meet:
+@ID @C {
+void KheNodeGroupDemandMonitorsByLeaderMeet(KHE_NODE node,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheLayerGroupDemandMonitorsByLeaderMeet(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+These make one group monitor for each non-cycle meet lying directly
+within @C { node } or any of its descendant nodes, or in the child
+nodes of @C { layer } or any of their descendant nodes (each
+@I { leader meet }), containing the demand monitors of the tasks
+of that meet and of all meets assigned to that meet, directly or
+indirectly, that do not lie in nodes themselves.  This assigns
+the blame (as it were) for any problems to the leader meet,
+which suits repairs that move leader meets.  The meaning of
+@C { assigned_to_node }, @C { include_preassigned }, and
+@C { include_unpreassigned } is as above.  Each group monitor's
+back pointer is set to the leader meet.
+@PP
+Demand monitors may also be grouped by node:
+@ID @C {
+void KheNodeGroupDemandMonitorsByChildNode(KHE_NODE parent_node,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+void KheLayerGroupDemandMonitorsByChildNode(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, bool include_preassigned,
+  bool include_unpreassigned, int sub_tag, char *sub_tag_label,
+  KHE_GROUP_MONITOR prnt);
+}
+These make one group monitor for each child node of
+@C { parent_node }, or for each child node of @C { layer },
+containing the ordinary demand monitors of the meets lying in
+the child node and its descendants, and of meets assigned
+to those meets.  Back pointers are set to the child nodes.
+@End @SubSection
+
+@SubSection
+    @Title { Higher level grouping and ungrouping }
+    @Tag { grouping.helper.high }
+@Begin
+@LP
+This section presents some functions for grouping and ungrouping
+monitors at a higher level; that is, for grouping group monitors
+together, and removing those groupings.
+@PP
+These functions group monitors together in a way suited to
+repairing meet assignments:
+@ID { 0.92 1.0 } @Scale @C {
+KHE_GROUP_MONITOR KheNodeGroupMonitorsForMeetRepair(KHE_NODE parent_node,
+  KHE_NODE assigned_to_node, int event_sub_tag, char *event_sub_tag_label,
+  int preassigned_demand_sub_tag, char *preassigned_demand_sub_tag_label,
+  int unpreassigned_demand_sub_tag, char *unpreassigned_demand_sub_tag_label,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheLayerGroupMonitorsForMeetRepair(KHE_LAYER layer,
+  KHE_NODE assigned_to_node, int event_sub_tag, char *event_sub_tag_label,
+  int preassigned_demand_sub_tag, char *preassigned_demand_sub_tag_label,
+  int unpreassigned_demand_sub_tag, char *unpreassigned_demand_sub_tag_label,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+}
+They are similar except that @C { KheNodeGroupMonitorsForMeetRepair }
+groups monitors that monitor the child nodes of @C { parent_node }, while
+@C { KheLayerGroupMonitorsForMeetRepair } groups monitors that monitor the
+child nodes of @C { layer }.  Both functions are easily written, given
+previous helper functions.  For example:
+@ID { 0.90 1.0 } @Scale @C {
+KHE_GROUP_MONITOR KheNodeGroupMonitorsForMeetRepair(KHE_NODE parent_node,
+  KHE_NODE assigned_to_node, int event_sub_tag, char *event_sub_tag_label,
+  int preassigned_demand_sub_tag, char *preassigned_demand_sub_tag_label,
+  int unpreassigned_demand_sub_tag, char *unpreassigned_demand_sub_tag_label,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt)
+{
+  KHE_GROUP_MONITOR res;
+  res = KheGroupMonitorMake(KheNodeSoln(parent_node), sub_tag, sub_tag_label);
+  if( prnt != NULL )
+    KheGroupMonitorAddChildMonitor(prnt, (KHE_MONITOR) res);
+  KheNodeGroupEventMonitorsByClass(parent_node, assigned_to_node,
+    event_sub_tag, event_sub_tag_label, res);
+  KheNodeGroupDemandMonitorsByLeaderMeet(parent_node, assigned_to_node, true,
+    false, preassigned_demand_sub_tag, preassigned_demand_sub_tag_label, res);
+  KheNodeGroupDemandMonitorsByLeaderMeet(parent_node, assigned_to_node, false,
+    true, unpreassigned_demand_sub_tag, unpreassigned_demand_sub_tag_label,res);
+  return res;
+}
+}
+The first step is to make @C { res }, the result group monitor,
+which will hold all the other group monitors created.  Then event
+monitors are grouped by class, and preassigned and unpreassigned
+demand monitors are grouped separately, by leader meet.  Here is
+an example of a specific call, taken from the ejection chain
+algorithm of Section {@NumberOf ejection.time_repair}:
+@ID @C {
+KheNodeGroupMonitorsForMeetRepair(parent_node, parent_node,
+  KHE_SUBTAG_EVENT, "EventGroupMonitor",
+  KHE_SUBTAG_PREASSIGNED_DEMAND, "PreassignedDemandGroupMonitor",
+  KHE_SUBTAG_UNPREASSIGNED_DEMAND, "UnpreassignedDemandGroupMonitor",
+  KHE_SUBTAG_NODE, "NodeGroupMonitor", (KHE_GROUP_MONITOR) soln);
+}
+This follows the standard.  However, the user is free to pass any values.
+There is also
+@ID { 0.95 1.0 } @Scale @C {
+KHE_GROUP_MONITOR KheNodeGroupMonitorsForNodeRepair(KHE_NODE parent_node,
+  KHE_NODE assigned_to_node, int unpreassigned_demand_sub_tag,
+  char *unpreassigned_demand_sub_tag_label, int sub_tag,
+  char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+}
+which groups monitors for node repair.
+@PP
+These functions group monitors together in a way suited to
+repairing task assignments:
+@ID @C {
+KHE_GROUP_MONITOR KheSolnGroupMonitorsForTaskRepair(
+  KHE_SOLN soln, KHE_NODE assigned_to_node,
+  int event_resource_sub_tag, char *event_resource_sub_tag_label,
+  int resource_sub_tag, char *resource_sub_tag_label,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+KHE_GROUP_MONITOR KheTaskingGroupMonitorsForTaskRepair(
+  KHE_TASKING tasking, KHE_NODE assigned_to_node,
+  int event_resource_sub_tag, char *event_resource_sub_tag_label,
+  int resource_sub_tag, char *resource_sub_tag_label,
+  int sub_tag, char *sub_tag_label, KHE_GROUP_MONITOR prnt);
+}
+They group by class the event resource monitors of the tasks of
+@C { soln }, or of @C { tasking }, and they group by resource the
+resource monitors of the resources of @C { soln }, or of the
+resources of @C { tasking }'s resource type, using functions
+defined earlier, and place all these group monitors under the
+group monitor returned as result.
+@PP
+The second of these functions is called by the ejection chain
+algorithm which repairs the resource assignments of one tasking
+(Section {@NumberOf ejection.resource_repair}).  It supplies the
+defects that this algorithm repairs.  Conventionally, it would be
+called with these parameters:
+@ID @C {
+KheTaskingGroupMonitorsForTaskRepair(tasking, NULL,
+  KHE_SUBTAG_EVENT_RESOURCE, "EventResourceGroupMonitor",
+  KHE_SUBTAG_RESOURCE, "ResourceGroupMonitor",
+  KHE_SUBTAG_TASKING, "TaskingMonitor", (KHE_GROUP_MONITOR) soln);
+}
+following the standard.  However, the user is free to pass any values.
+@PP
+Finally, function
+@ID @C {
+void KheUnGroupMonitors(KHE_GROUP_MONITOR gm);
+}
+removes @C { gm } (which may not be the solution object) and all
+group monitors which are proper descendants of @C { gm }, while
+ensuring that the non-group monitors which are descendants of
+@C { gm } become children of @C { gm }'s parent, if any.  This
+undoes all grouping at or below @C { gm }.  If passed the result
+of one of the functions above, it undoes the grouping created
+by that function.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Conventions for attaching and grouping monitors }
+    @Tag { grouping.conventions }
+@Begin
+@LP
+Non-group monitors may be attached to or detached from the solution,
+and they may be grouped under group monitors in various ways.  It is
+not reasonable to mandate how monitors should be attached and grouped
+while a particular solver is running.  But it is reasonable to do so
+in between solvers, since this provides a predictable environment,
+allowing most solvers to start work without having to check that
+the attachments and groupings are what they require.
+@PP
+It could be argued that families of solvers which share unconventional
+attachments and groupings should not be constrained by such a standard.
+But even in these cases we believe that it is best for such solvers to
+spend unnecessary time on attachment and grouping, to maximize their
+interoperability with other solvers.  Time spent changing the way that
+monitors are attached and grouped is virtually certain to be insignificant.
+Even if radical changes are made at the beginning and end of each
+solve, that will still take negligible time compared with the
+actual solving.
+@PP
+Section {@NumberOf monitoring.attach} offers two reasons for
+detaching monitors from the solution.  The first is that the user
+may wish to deliberately ignore certain constraints (soft ones,
+for example) during some phase of the solve.  The required attaching
+and detaching are explicit steps of the solve algorithm, and there
+is no doubt about where to carry them out.
+@PP
+The second reason is for efficiency when it can be concluded
+that monitors will have zero cost for a long time.  There is a
+list (Section {@NumberOf monitoring.attach}) of elements of the
+solution that can be assumed to change sufficiently rarely to
+justify such a conclusion:  the way that events are split into
+meets, non-@C { NULL } assignments to meets that do not lie in
+nodes, assignments to follower tasks, and meet and task domains.
+As Chapter {@NumberOf monitoring} describes in detail, the monitors
+affected by this are:
+@BulletList
+
+@LI {
+Prefer times monitors, which may be detached if the current domain
+of each monitored meet is a subset of the monitor's constraint's
+domain.
+}
+
+@LI {
+Split events monitors and distribute split events monitors, which
+may be detached if their cost is 0, indicating that the current splits
+satisfy their constraints.
+}
+
+@LI {
+Link events monitors, which may be detached if the meets of the
+monitored events have the same durations, leader meets, and
+offsets into leader meets.
+}
+
+@LI {
+Prefer resources monitors, which may be detached if the domain of
+the leader of each monitored task is a subset of the monitor's
+constraint's domain.
+}
+
+@LI {
+Avoid split assignments monitors, which may be detached if the
+monitored tasks have the same leader task.
+}
+
+@EndList
+It is these kinds of monitors, then, whose attachment status needs to
+be considered by solvers.
+@PP
+The recommended conventions are expressed in this
+@I { attachment and grouping invariant }, which should hold at
+the beginning and end of each major phase:
+@NumberedList
+
+@LI {
+The solution object is the only group monitor.
+}
+
+@LI {
+Every monitor other than the solution object has the solution
+object as its parent.
+}
+
+@LI {
+For each non-group monitor @C { m }, if running
+@C { KheMonitorAttachCheck(m) } now would ensure that @C { m } was
+attached, then @C { m } must be attached; if it would ensure that
+@C { m } was detached, then @C { m } may be attached or detached.
+}
+
+@LI {
+As an exception to the previous point, the user may deliberately
+exclude some monitors.  These are detached from the solution, but
+still have the solution object as their parent.
+}
+
+@EndList
+KHE's solvers preserve this invariant---not while they are running,
+but they assume it as a precondition and guarantee it as a
+postcondition.
+@PP
+A monitor could be excluded by ensuring that it is not a
+descendant of the solution group monitor, but that is not
+the efficient way, so the invariant specifies that it must
+be done the other way, by detaching the monitor from the
+solution.
+@PP
+As a precondition, the invariant makes things very easy for the
+typical solver:  it does not have to worry about attaching or
+grouping, since it is assured that they are in a reasonable state.
+If it needs group monitors, however, it must make them itself.
+@PP
+As a postcondition, the invariant has non-trivial consequences.  Any
+group monitor a solver makes must be deleted before returning, and any
+non-group monitor given such a monitor as a parent must be returned to
+the solution group monitor.  A call on @C { KheUnGroupMonitors } will
+often be the way to do this.
+@PP
+If a solver changes elements of the solution that are assumed by
+@C { KheMonitorAttachCheck } to change only rarely, then it should
+offer the option of calling @C { KheMonitorAttachCheck } on the
+affected monitors, so that the user has the option of either
+ensuring that the third item of the invariant is maintained,
+or not doing so because of a case of the fourth item.
+@PP
+For example, @C { KheLayerTreeMake }
+(Section {@NumberOf layer_tree_solvers.construction}) changes
+meet splits, assignments, and domains, so it offers options
+to call @C { KheMonitorAttachCheck } on prefer times monitors,
+split events and distribute split events monitors, and link
+events monitors.  @C { KheTaskTreeMake }
+(Section {@NumberOf resource_solvers.task_tree.construction})
+changes task domains and the assignments of follower tasks,
+so it offers options to call @C { KheMonitorAttachCheck } on
+prefer resources monitors and avoid split assignments monitors.
+@End @Section
+
+@EndSections
+@End @Chapter

@@ -1,0 +1,803 @@
+@Chapter
+    @Title { Ejection Chains }
+    @Tag { ejection }
+@Begin
+Ejection chains generalize the augmenting path algorithms used in
+bipartite matching.  They are due to Glover @Cite { $glover1996 },
+who applied them to the travelling salesman problem.  In timetabling,
+they have been applied to nurse rostering @Cite { $dowsland1998 },
+teacher assignment @Cite { $kingston2008resource }, and time repair
+@Cite { $kim1997 }.  Reference @Cite { $kim1997 } is very cryptic,
+unfortunately.
+@BeginSections
+
+@Section
+    @Title { Introduction }
+    @Tag { ejection.intro }
+@Begin
+@LP
+An ejection chain algorithm targets one defect and tries a set of
+alternative @I repairs on it.  A repair could be a simple move or
+swap, or it could be an arbitrarily complex algorithm.  It removes
+the defect, but may introduce new defects.  If no new defects of
+significant cost are introduced, the repair terminates successfully.
+If just one significant new defect is introduced, the method calls
+itself recursively in an attempt to remove that defect; in this way
+a chain of coordinated changes is built up.  If two or more significant
+new defects are introduced, or the recursive call fails to
+remove the new defect, the method undoes the repair and
+continues with alternative repairs.  It could try to remove all
+the new defects, but that would produce few successes in practice.
+@PP
+Corresponding to the well-known function for finding an augmenting
+path in a bipartite graph, starting from a given node, is this
+function, formulated by the author, for `augmenting' (improving)
+a solution, starting from a given defect:
+@ID @C {
+bool Augment(Solution s, Cost c, Defect d);
+}
+(KHE's interface is somewhat different to this.)  @C { Augment }
+has precondition
+@ID @C { cost(s) >= c && cost(s) - cost(d) < c }
+If it can change @C { s } to reduce its cost to less than @C { c },
+it does so and returns @C { true }; if not, it leaves @C { s }
+unchanged and returns @C { false }.  The precondition implies that
+removing @C { d } without adding new defects would be one way to
+succeed.  Here is an abstract implementation of @C { Augment }:
+@ID -1px @Break @C {
+bool Augment(Solution s, Cost c, Defect d)
+{
+  repair_set = RepairsOf(d);
+  for( each repair r in repair_set )
+  {
+    new_defect_set = Apply(s, r);
+    if( cost(s) < c )
+      return true;
+    for( each e in new_defect_set )
+      if( cost(s) - cost(e) < c && Augment(s, c, e) )
+        return true;
+    UnApply(s, r);
+  }
+  return false;
+}
+}
+It begins by finding the set of all ways that @C { d } could be
+repaired.  These may be @I { tailored }, that is, focussed on
+changes likely to work.  For each repair, it applies it and
+receives the set of new defects introduced by that repair, looks
+for success in two ways, then if neither of those works out it
+unapplies the repair and continues with the next repair, returning
+@C { false } when all repairs have been tried without success.
+@PP
+Success could come in two ways.  Either one of the repairs
+reduces @C { cost(s) } to below @C { c }, or some new defect
+@C { e } has cost large enough to ensure that removing it
+alone would constitute success, and a recursive call targeted
+at @C { e } succeeds.  Notice that @C { cost(s) } may grow
+without limit as the chain deepens, provided that there is
+a single defect @C { e } whose removal would reduce the
+cost of the solution to less than @C { c }.
+@PP
+The algorithm stops at the first successful change.  It can
+be altered to make the best successful change rather than the
+first (Section {@NumberOf ejection.extended}).
+@PP
+The key observation that justifies the whole approach is this:
+the new defects targeted by the recursive calls are not known to
+have resisted attack before.  It might be possible to repair one
+of them without introducing any new defects of significant cost.
+@PP
+The tree searched by @C { Augment } as presented may easily
+grow to exponential size, which is not the intention.  The
+author has tried two methods of limiting its size, both of
+which have proved useful.  They may be used separately or
+together.
+@PP
+The first method is to limit the depth of recursion to a fixed
+constant, perhaps 3 or 4.  The maximum depth is passed as an
+extra parameter to @C { Augment }, and reduced on each
+recursive call, with value 0 preventing further recursion.
+Not only is this attractive in itself, it also supports
+@I { iterative deepening }, in which @C { Augment } is called
+several times on the same defect, with the depth parameter
+increased each time.  Another idea (not implemented in KHE)
+is to use a small depth on the first iteration of the main
+loop (see below), and increase it on later iterations.
+@PP
+The second method is the one used by the augmenting path
+method from bipartite matching.  Just before each call on
+@C { Augment } from the main loop, the entire solution is
+marked unvisited.  This is implemented by incrementing a
+single global visit number, not by traversing the entire
+solution.  When a repair changes some part of the solution,
+that part is marked visited.  Repairs that change parts
+of the solution that are already marked visited are tabu.
+In this way, the size of the tree is limited to the size
+of the solution.
+@PP
+Given a solution and a list of all its defects, the main loop
+cycles through the list repeatedly, calling @C { Augment }
+on each defect in turn, with @C { c } set to @C { cost(s) }.
+When the main loop exits, every defect has been tried at least
+once without success since the most recent success, so no
+further successful augments are possible, assuming that
+there is no randomness within @C { Augment }.  This is a very
+clear-cut stopping criterion compared with, say, the stopping
+criteria used by metaheuristics.  Under reasonable assumptions,
+it ensures that the whole algorithm runs in polynomial time,
+for the same reason that hill-climbing does.
+@PP
+When there are several defect types, several @C { Augment }
+algorithms are needed, one for each defect type, dynamically
+dispatched on the type.  Then the tailored repairs can
+usually be generated and applied directly, rather than via
+objects built to represent those repairs.
+@End @Section
+
+@Section
+    @Title { Implementing ejection chains }
+    @Tag { ejection.impl }
+@Begin
+@LP
+This section presents the KHE implementation of ejection chains.
+@BeginSubSections
+
+@SubSection
+    @Title { Ejectors }
+    @Tag { ejection.impl.ejectors }
+@Begin
+@LP
+@I { Ejector } objects provide a framework for ejection chain
+algorithms, reducing the implementation burden to writing just
+the augment functions.  The framework uses visit numbers
+(Section {@NumberOf solutions.visit}), in the conventional
+way.  An ejector is created by calling
+@ID @C {
+KHE_EJECTOR KheEjectorMake(KHE_SOLN soln);
+}
+and then configured using functions to be described next.  Solving
+is a separate step, described in the next section.  The ejector's
+solution attribute is returned by
+@ID @C {
+KHE_SOLN KheEjectorSoln(KHE_EJECTOR ej);
+}
+and function
+@ID @C {
+void KheEjectorDelete(KHE_EJECTOR ej);
+}
+deletes an ejector when it is no longer needed.
+@PP
+An ejector contains a sequence of @I { schedules }.  There
+may be any number of schedules; initially there are none.  To
+add a schedule, call
+@ID @C {
+void KheEjectorAddSchedule(KHE_EJECTOR ej, int max_depth,
+  int max_disruption, bool may_revisit);
+}
+In the main loop of the algorithm, when an augment is tried
+for a given defect, the ejector applies each schedule in order
+until one succeeds or all have been tried.  So at least one
+schedule must be added, otherwise the augment will do nothing.
+@PP
+The @C { max_depth } parameter determines the maximum depth of
+recursion of the schedule (the maximum number of repairs
+permitted on one chain).  Value 0 would allow no repairs
+at all and is forbidden.  Value 1 allows the initial augment
+calls from the main loop, but prevents them from making any
+recursive calls, producing a kind of hill climbing; value 2
+allows the calls made from the main loop to make recursive
+calls, but prevents those calls from recursing; and so on.
+@PP
+The user is required to supply a non-negative integer @I { disruption }
+for each repair, which is supposed to measure the amount of disruption
+the repair causes.  The framework totals these values and terminates
+any chain whose total disruption exceeds @C { max_disruption }.  If
+this is not wanted, set @C { max_disruption } to @C { INT_MAX }.
+@PP
+Each @I phase (each augment call in the main loop) is free to change
+any part of the solution.  When @C { may_revisit } is @C { false },
+each part of the solution may be changed by at most one of the
+recursive calls made within one phase; when it is @C { true },
+each part may be changed by any number of the recursive calls
+of one phase, although only once along any one ejection chain.
+@PP
+For example, to allow up to two repairs on any chain, with
+revisiting, the code is:
+@ID @C {
+ej = KheEjectorMake(gm);
+KheEjectorAddSchedule(ej, 2, INT_MAX, true);
+}
+To get arbitrary-depth recursion, but no revisiting, the code is:
+@ID @C {
+ej = KheEjectorMake(gm);
+KheEjectorAddSchedule(ej, INT_MAX, INT_MAX, false);
+}
+It is a bad idea to set @C { max_depth } and @C { max_disruption }
+to a large value and @C { may_revisit } to @C { true } in the same
+schedule, because the algorithm will then usually take exponential
+time.  But setting @C { max_depth } or @C { max_disruption } to a
+small constant, or setting @C { may_revisit } to @C { false }, or
+both, guarantees polynomial time (assuming that all disruptions are
+non-zero).  Another interesting idea is @I { iterative deepening },
+in which several depths are tried.  For example,
+@ID @C {
+ej = KheEjectorMake(gm);
+KheEjectorAddSchedule(ej, 1, INT_MAX, true);
+KheEjectorAddSchedule(ej, 2, INT_MAX, true);
+KheEjectorAddSchedule(ej, 3, INT_MAX, true);
+KheEjectorAddSchedule(ej, INT_MAX, INT_MAX, false);
+}
+tries maximum depth 1, then 2, then 3, and finishes with arbitrary
+depth.
+@PP
+Schedules are packaged into schedule objects of type
+@C { KHE_EJECTOR_SCHEDULE } as they are added.  The
+schedules of an ejector may be accessed at any time by
+@ID @C {
+int KheEjectorScheduleCount(KHE_EJECTOR ej);
+KHE_EJECTOR_SCHEDULE KheEjectorSchedule(KHE_EJECTOR ej, int i);
+}
+in the usual way, and the attributes of one schedule may be
+retrieved by
+@ID @C {
+int KheEjectorScheduleMaxDepth(KHE_EJECTOR_SCHEDULE ejs);
+int KheEjectorScheduleMaxDisruption(KHE_EJECTOR_SCHEDULE ejs);
+bool KheEjectorScheduleMayRevisit(KHE_EJECTOR_SCHEDULE ejs);
+}
+Schedule objects are deleted along with the ejectors they
+are irreversibly bound to.
+@PP
+Ejectors also handle the polymorphic dispatch by defect type.
+After creating an ejector, make a sequence of calls to
+@ID @C {
+void KheEjectorAddAugment(KHE_EJECTOR ej,
+  KHE_MONITOR_TAG tag, KHE_EJECTOR_AUGMENT_FN augment_fn);
+void KheEjectorAddGroupAugment(KHE_EJECTOR ej,
+  int sub_tag, KHE_EJECTOR_AUGMENT_FN augment_fn);
+}
+The first ensures that defects which are non-group monitors with
+the given @C { tag } are handled by the given @C { augment_fn };
+the second ensures that defects which are group monitors with the
+given @C { sub_tag } are handled by the given @C { augment_fn }.
+The augment functions passed to the ejector in this way are written
+by the user.  Information on how to do this is given below.  The
+value of @C { sub_tag } must be between 0 and 19 inclusive.  Any 
+values not set are handled by returning @C { false } immediately,
+which is equivalent to ignoring the existence of defects of that type.
+@PP
+Ejectors also offer function
+@ID @C {
+void KheEjectorAddMonitorCostLimit(KHE_EJECTOR ej,
+  KHE_MONITOR m, KHE_COST cost_limit);
+}
+If this is called, then any chain that would cause the cost of
+@C { m } to exceed @C { cost_limit } will be terminated.  To visit
+these @I { monitor cost limits }, call
+@ID @C {
+int KheEjectorMonitorCostLimitCount(KHE_EJECTOR ej);
+void KheEjectorMonitorCostLimit(KHE_EJECTOR ej, int i,
+  KHE_MONITOR *m, KHE_COST *cost_limit);
+}
+Although any number of them may be added, large numbers will not
+be efficient.  Instead, make a group monitor and limit the cost
+of that.  Although it is not quite the same thing, in practice it
+is just as good.  The same monitor cost limits apply to all schedules.
+@End @SubSection
+
+@SubSection
+    @Title { Solving }
+    @Tag { ejection.impl.solving }
+@Begin
+@LP
+Once an ejector has been set up, the ejection chain algorithm
+is run by calling
+@ID @C {
+void KheEjectorSolve(KHE_EJECTOR ej, KHE_EJECTOR_SOLVE_TYPE solve_type,
+  KHE_GROUP_MONITOR gm);
+}
+Parameter @C { solve_type } determines which variant of the basic
+ejection chain idea is to be applied.  Its possible values are
+@ID @C {
+typedef enum {
+  KHE_EJECTOR_NONE,
+  KHE_EJECTOR_FIRST_SUCCESS,
+  KHE_EJECTOR_MIN_COST,
+  KHE_EJECTOR_MIN_DISRUPTION_THEN_COST
+} KHE_EJECTOR_SOLVE_TYPE;
+}
+@C { KHE_EJECTOR_NONE } is the solve type when the ejector is not
+actually solving, and should never be passed to @C { KheEjectorSolve }.
+@C { KHE_EJECTOR_FIRST_SUCCESS } is the usual value, assumed in
+everything presented so far.  The other two values are documented in
+Section {@NumberOf ejection.extended}.
+@PP
+@C { KheEjectorSolve } applies the main loop of the ejection chain
+algorithm to @C { gm }'s defects.  The aim is always to reduce the
+cost of the overall solution, but this allows an algorithm to focus
+on one part of the problem, the part monitored by @C { gm }.  As
+usual, @C { gm } could be an upcast @C { soln }.
+@PP
+An ejector may be used by only one call to @C { KheEjectorSolve }
+at any one time, since ejectors are not immutable.  The following
+functions may be called while @C { KheEjectorSolve } is running
+(that is, from within augment functions):
+@ID @C {
+KHE_EJECTOR_SOLVE_TYPE KheEjectorSolveType(KHE_EJECTOR ej);
+KHE_GROUP_MONITOR KheEjectorGroupMonitor(KHE_EJECTOR ej);
+KHE_COST KheEjectorTargetCost(KHE_EJECTOR ej);
+KHE_EJECTOR_SCHEDULE KheEjectorCurrSchedule(KHE_EJECTOR ej);
+int KheEjectorCurrDepth(KHE_EJECTOR ej);
+int KheEjectorCurrDisruption(KHE_EJECTOR ej);
+}
+The first two return the parameters of the call to @C { KheEjectorSolve }.
+@C { KheEjectorTargetCost } is the cost the solution had when the
+current phase began---the value that has to be improved on, called
+@C { c } in the abstract presentation earlier.  @C { KheEjectorCurrSchedule }
+returns the current schedule, @C { KheEjectorCurrDepth } returns the
+current depth (0 when the augment function was called from the main loop,
+1 when it was called from an augment function called from the main loop,
+and so on), and @C { KheEjectorCurrDisruption } returns the current
+disruption.
+@PP
+For the record, here is @C { KheEjectorSolve }:
+@ID -1px @Break @C {
+void KheEjectorSolve(KHE_EJECTOR ej, KHE_EJECTOR_SOLVE_TYPE solve_type,
+  KHE_GROUP_MONITOR gm)
+{
+  int i;  KHE_MONITOR d;  bool progressing;
+  ej->solve_type = solve_type;
+  ej->group_monitor = gm;
+  KheGroupMonitorDefectSort(gm);
+  do
+  {
+    progressing = false;
+    KheGroupMonitorCopyDefects(gm);
+    for( i = 0;  i < KheGroupMonitorDefectCopyCount(gm);  i++ )
+    {
+      d = KheGroupMonitorDefectCopy(gm, i);
+      if( KheMonitorCost(d) > 0 && KheEjectorAugment(ej, d) )
+	progressing = true;
+    }
+  } while( progressing );
+}
+}
+There is an initial sort of the defects into decreasing cost order,
+so that the worst ones are repaired first to begin with.  The outer
+loop repeatedly takes a copy of the current list of defects and
+iterates over that list, continuing until a complete iteration
+produces no improvement.  Private function @C { KheEjectorAugment }
+iterates over the sequence of schedules and dispatches polymorphically
+to the augment functions stored in @C { ej }.
+@End @SubSection
+
+@SubSection
+    @Title { How to write an augment function }
+    @Tag { ejection.impl.augment }
+@Begin
+@LP
+An augment function has type
+@ID @C {
+typedef bool (*KHE_EJECTOR_AUGMENT_FN)(KHE_EJECTOR ej, KHE_MONITOR d);
+}
+The parameters are the ejector passed to @C { KheEjectorSolve },
+and the defect @C { d } that the augment function is supposed to
+repair.  It is a precondition that @C { d } have non-zero cost
+and removing that cost would constitute a successful augment.
+@PP
+Augment functions have the following general form:
+@ID @C {
+bool MyAugment(KHE_EJECTOR ej, KHE_MONITOR d)
+{
+  KHE_TRACE tc;  KHE_TRANSACTION tn;
+  tc = KheTraceMake(KheEjectorGroupMonitor(ej));
+  tn = KheTransactionMake(KheEjectorSoln(ej));
+  for( each r in RepairsOf(d) )
+  {
+    KheTransactionBegin(tn);
+    KheTraceBegin(tc);
+    Apply(r);
+    KheTraceEnd(tc);
+    KheTransactionEnd(tn);
+    RepairsVisit(r);
+    if( KheEjectorSuccess(ej, tc, disruption(r)) )
+    {
+      KheTraceDelete(tc);
+      KheTransactionDelete(tn);
+      return true;
+    }
+    KheTransactionUndo(tn);
+    if( KheEjectorScheduleMayRevisit(KheEjectorCurrSchedule(ej)) )
+      RepairsUnVisit(r);
+  }
+  KheTraceDelete(tc);
+  KheTransactionDelete(tn);
+  return false;
+}
+}
+Function @C { RepairsOf } constructs a list of alternative repairs of
+@C { d }, being careful to exclude repairs that change any part of the
+solution marked visited (tested by calling @C { KheMeetVisited }
+etc. from Section {@NumberOf solutions.visit}).  The construction and
+application of repairs are often merged in practice.  If there are
+several different types of repair, there may be several loops.
+@PP
+Functions @C { RepairsVisit } and @C { RepairsUnVisit } stand for code
+which marks the entities changed by the repair visited and unvisited
+(by calling @C { KheMeetVisit } and @C { KheMeetUnVisit } etc. from
+Section {@NumberOf solutions.visit}).  Their placement in the above
+sample is the one to use when each repair changes different entities.
+More commonly, each repair changes the same entity, but in a different
+way, and in that case this code is better placed outside the repair
+loop.  Supposing, for example, that all repairs change only one part
+of the solution, namely @C { meet }, the code is
+@ID @C {
+if( !KheMeetVisited(meet) )
+{
+  KheMeetVisit(meet);
+  for( each r in RepairsOf(d) )
+     ...
+  if( KheEjectorScheduleMayRevisit(KheEjectorCurrSchedule(ej)) )
+    KheMeetUnVisit(meet);
+}
+}
+This way, only one recursive call can change @C { meet } (unless
+revisiting), but it can change it any number of times.  Repairs
+that change the same solution entities need to be handled together.
+Visit numbers do not matter when @C { true } is returned, since
+that return propagates directly up to the main loop and is followed
+by a new visit.  Each schedule of each augment is a new visit.
+@PP
+Transactions are only needed for undoing, and can be omitted in simple
+cases (but see the remarks in Section {@NumberOf ejection.extended} on
+undoing when solve types other than @C { KHE_EJECTOR_FIRST_SUCCESS } 
+are used).  Tracing is always necessary.  The memory allocation
+time of transaction and trace objects is negligible, since they are
+recycled through free lists kept in the enclosing solution object.
+@PP
+Function @C { KheEjectorSuccess } looks after testing whether success
+has occurred, including recursing on the newly introduced defects
+(some of the monitors in trace @C { tc }).  Here is its implementation,
+omitting code for handling limits on depth, disruption, and monitor costs,
+and for handling solve types other than @C { KHE_EJECTOR_FIRST_SUCCESS },
+but otherwise truthful:
+@ID @C {
+bool KheEjectorSuccess(KHE_EJECTOR ej, KHE_TRACE tc, int disruption)
+{
+  KHE_MONITOR m;  int i;
+  if( KheSolnCost(ej->soln) < ej->target_cost )
+    return true;
+  for( i = 0;  i < KheTraceMonitorCount(tc);  i++ )
+  {
+    m = KheTraceMonitor(tc, i);
+    if( KheMonitorCost(m) > KheTraceMonitorInitCost(tc, i) &&
+        KheSolnCost(ej->soln) - KheMonitorCost(m) < ej->target_cost &&
+	KheEjectorPolyAugment(ej, m) )
+      return true;
+  }
+  return false;
+}
+}
+This closely follows the abstract implementation
+(Section {@NumberOf ejection.intro}).  There is a test to ensure that
+any defect being recursed on did actually increase in cost.  Private
+function @C { KheEjectorPolyAugment } performs the polymorphic dispatch
+to the user's augment functions.  A repair that changes nothing causes
+@C { KheEjectorSuccess } to return @C { false }, because the cost
+will not have decreased and the trace will contain no monitors.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Time repair }
+    @Tag { ejection.time_repair }
+@Begin
+@LP
+In Section {@NumberOf time_solvers.repair.combined}, function
+@C { KheEjectionChainRepairTimes } was introduced for repairing
+times using ejection chains.  Here is its implementation:
+@ID -1px @Break @C {
+bool KheEjectionChainRepairTimes(KHE_NODE parent_node)
+{
+  /* build the group monitors required by this algorithm */
+  KHE_SOLN soln;  KHE_GROUP_MONITOR gm;  KHE_EJECTOR ej;
+  soln = KheNodeSoln(parent_node);
+  gm = KheNodeGroupMonitorsForMeetRepair(parent_node, parent_node,
+    KHE_SUBTAG_EVENT, "EventGroupMonitor",
+    KHE_SUBTAG_PREASSIGNED_DEMAND, "PreassignedDemandGroupMonitor",
+    KHE_SUBTAG_UNPREASSIGNED_DEMAND, "UnpreassignedDemandGroupMonitor",
+    KHE_SUBTAG_NODE, "NodeGroupMonitor", (KHE_GROUP_MONITOR) soln);
+
+  /* set up the ejector and run the algorithm */
+  ej = KheEjectorMake(soln);
+  KheEjectorAddSchedule(ej, 1, INT_MAX, false);
+  KheEjectorAddSchedule(ej, 2, INT_MAX, false);
+  KheEjectorAddSchedule(ej, INT_MAX, INT_MAX, false);
+  KheEjectorAddGroupAugment(ej, KHE_SUBTAG_EVENT,
+    &KheTimeRepairEventMonitorAugment);
+  KheEjectorAddGroupAugment(ej, KHE_SUBTAG_PREASSIGNED_DEMAND,
+    &KheTimeRepairDemandMonitorAugment);
+  KheEjectorAddGroupAugment(ej, KHE_SUBTAG_UNPREASSIGNED_DEMAND,
+    &KheTimeRepairDemandMonitorAugment);
+  KheEjectorSolve(ej, KHE_EJECTOR_FIRST_SUCCESS, gm);
+  KheEjectorDelete(ej);
+
+  /* remove the group monitors and exit */
+  KheUnGroupMonitors(gm);
+  return KheNodeAllChildMeetsAssigned(parent_node);
+}
+}
+It calls @C { KheNodeGroupMonitorsForMeetRepair }
+(Section {@NumberOf grouping.helper.high}) to group monitors in a way
+suited to repairing the assignments of meets using Kempe meet moves:
+that is, into event group monitors, preassigned demand group monitors, and
+unpreassigned demand group monitors.  Only monitors for meets assigned
+directly or indirectly to meets of @C { parent_node } are grouped under
+@C { gm }.  Then it makes an ejector, adds some schedules, registers
+two augment functions, and calls @C { KheEjectorSolve } to do the actual
+solving.  Finally it deletes the ejector, ungroups the monitors as required
+by the grouping conventions (Section {@NumberOf grouping.conventions}),
+and returns.
+@PP
+@C { KheTimeRepairEventMonitorAugment } and
+@C { KheTimeRepairDemandMonitorAugment } are public augment functions,
+usable by other ejection chain algorithms, provided that monitors are
+grouped appropriately.  The remainder of this section describes these
+functions.
+@PP
+@C { KheTimeRepairEventMonitorAugment } accepts an event monitor
+(an assign time, prefer times, split events, distribute split events,
+link events, or spread events monitor) or an event group monitor
+(a monitor whose child monitors are event monitors).  These terms
+were defined in Section {@NumberOf grouping.helper.event}.
+@C { KheEjectionChainRepairTimes } dispatches only these kinds of
+monitors (in fact, only event group monitors) to
+@C { KheTimeRepairEventMonitorAugment }.
+@PP
+When given a non-group monitor, @C { KheTimeRepairEventMonitorAugment }
+tries to repair that monitor, returning @C { true } if and only if
+the repair succeeds.  When given a group monitor, it iterates over
+a copy of the list of defects of that group monitor (which must be
+non-empty, since the cost of the group monitor must be non-zero),
+trying to repair each in turn, and returning @C { true } as soon
+as one repair succeeds, or @C { false } if none do.  This way of
+handling both non-group and group monitors is common to all the
+augment functions supplied by KHE.
+@PP
+@C { KheTimeRepairEventMonitorAugment } makes only a nominal attempt
+to repair assign time, split events, distribute split events, and link
+events defects:  it simply declares failure.  Split event, distribute
+split events, and link events constraints are usually handled early
+in the overall solve process, for example by @C { KheLayerTreeMake };
+and @C { KheEjectionChainRepairTimes } disclaims any intention of
+finding assignments for meets which do not have them when it is called.
+So only prefer times and spread events defects receive serious treatment.
+@PP
+Given a prefer times defect, @C { KheTimeRepairEventMonitorAugment }
+visits each meet monitored by the defect.  For each of those meets
+which contributes to the cost (each meet of suitable duration assigned
+a time, directly or indirectly, outside the preferred time domain),
+the function visits each non-cycle ancestor meet @C { m } which lies
+in a node.  Changing the assignment of any of these meets could fix
+the problem.
+@PP
+For each @C { m }, it first tries Kempe meet moves of @C { m } to all
+meets and offsets in the parent node of @C { m }'s node which would
+place @C { m } into the preferred domain.  If the parent node has
+zones, only moves which would not change the meet's zone are tried.
+If they all fail, then if @C { m }'s node has at least one parent
+layer it tries node meet swaps of @C { m }'s node with all nodes
+that have the same parent layers as @C { m }'s node.  These swaps
+are not tailored to placing @C { m } into the preferred domain.  If
+they all fail, the search moves to the parent of @C { m }, and so on.
+@PP
+Given a spread events defect, @C { KheTimeRepairEventMonitorAugment }
+first takes each meet lying in an over-represented time group and
+moves it to each time group that would not become over-represented
+if it received the meet.  Then it takes each meet lying in a time
+group that would not become under-represented if it was removed,
+and moves it to each under-represented time group.  It returns
+@C { true } as soon as one of these repairs succeeds, or @C { false }
+if none of them do.  Moving a meet to a time group was needed for
+repairing prefer times defects above, and it is done in the same
+way here:  ancestor meets lying in nodes are visited, all Kempe
+moves to the desired time group which preserve zones are tried,
+then untailored node meet swaps are tried.
+@PP
+@C { KheTimeRepairDemandMonitorAugment } accepts an ordinary or
+workload demand monitor, or a group monitor whose child monitors
+are of those types.  It declares failure immediately on workload
+demand monitors, which should not matter, since they are inserted
+into the matching graph first and probably never become unmatched.
+It repairs an ordinary demand monitor by finding the meets that
+the demand monitor and all its non-workload competitors are for.
+It finds all their ancestor meets lying in nodes, as described
+above for prefer times constraints, and tries Kempe moves and
+node meet swaps, as before except that it ignores meets that are
+common ancestors of all the competitors, since moving those would
+probably not break up the problem.  Also, its Kempe meet moves
+are not restricted by a time group, only by zones.
+@PP
+Although @C { KheTimeRepairEventMonitorAugment } has no explicit
+options, its action is quite variable.  If there is a vizier node,
+it automatically tries moves of its meets; if there are no layers,
+there will be no node meet swaps; and if there are no zones, there
+will be no zone restrictions.
+@End @Section
+
+@Section
+    @Title { Resource repair }
+    @Tag { ejection.resource_repair }
+@Begin
+@LP
+In Section {@NumberOf resource_solvers.repair}, function
+@C { KheEjectionChainRepairResources } was introduced for repairing
+resource assignments using ejection chains.  Here is its implementation:
+@ID -1px @Break @C {
+void KheEjectionChainRepairResources(KHE_TASKING tasking,
+  bool preserve_invariant)
+{
+  /* build the group monitors required by this algorithm */
+  KHE_EJECTOR ej;  KHE_GROUP_MONITOR gm, dgm;  KHE_SOLN soln;
+  soln = KheTaskingSoln(tasking);
+  gm = KheTaskingGroupMonitorsForTaskRepair(tasking, NULL,
+    KHE_SUBTAG_EVENT_RESOURCE, "EventResourceGroupMonitor",
+    KHE_SUBTAG_RESOURCE, "ResourceGroupMonitor",
+    KHE_SUBTAG_TASKING, "TaskingMonitor", (KHE_GROUP_MONITOR) soln);
+  dgm = KheSolnGroupDemandMonitors(soln, NULL, true, true, true,
+    KHE_SUBTAG_DEMAND, "DemandGroupMonitor", (KHE_GROUP_MONITOR) soln);
+
+  /* set up the ejector and run the algorithm */
+  ej = KheEjectorMake(soln);
+  KheEjectorAddSchedule(ej, 1, INT_MAX, false);
+  KheEjectorAddSchedule(ej, 2, INT_MAX, false);
+  KheEjectorAddSchedule(ej, INT_MAX, INT_MAX, false);
+  if( preserve_invariant )
+    KheEjectorAddMonitorCostLimit(ej, (KHE_MONITOR) dgm,
+      KheMonitorCost((KHE_MONITOR) dgm));
+  KheEjectorAddGroupAugment(ej, KHE_SUBTAG_EVENT_RESOURCE,
+    &KheResourceRepairEventResourceMonitorAugment);
+  KheEjectorAddGroupAugment(ej, KHE_SUBTAG_RESOURCE,
+    &KheResourceRepairResourceMonitorAugment);
+  KheEjectorSolve(ej, KHE_EJECTOR_FIRST_SUCCESS, gm);
+  KheEjectorDelete(ej);
+
+  /* remove group monitors and exit */
+  KheUnGroupMonitors(gm);
+  KheUnGroupMonitors(dgm);
+}
+}
+It calls @C { KheTaskingGroupMonitorsForTaskRepair }
+(Section {@NumberOf grouping.helper.high}) to group the relevant
+event resource monitors by class, and the relevant resource monitors
+by resource.  It also groups all demand monitors under a single
+group monitor, @C { dgm }.  Then it makes, runs, and deletes
+the ejector, ungroups the monitors, and exits.
+@PP
+If @C { preserve_invariant } is @C { true }, it is required that
+the number of unmatched demand nodes not increase.  This is
+guaranteed by calling @C { KheEjectorAddMonitorCostLimit },
+passing @C { dgm } to the ejector as a monitor whose cost is
+not permitted to increase.
+@PP
+The two public augment functions, 
+@C { KheResourceRepairEventResourceMonitorAugment } and
+@C { KheResourceRepairResourceMonitorAugment }, are the subject of
+the rest of this section.
+@PP
+@C { KheResourceRepairEventResourceMonitorAugment } accepts
+an assign resource, prefer resources, or avoid split assignments
+monitor, or a group monitor containing any number of those monitors,
+in the usual way.
+@PP
+Given a task requiring repair, only one task on the sequence of
+assignments leading out of it can be viewed as lying in a node
+with a parent node.  As Section {@NumberOf resource_solvers.task_trees}
+explains, that task is the leader task, so the possible operations
+are assignments (Kempe resource assignments, in fact) and moves of
+the leader task.
+@PP
+Assign resource defects are repaired as follows.  The leader @C { t }
+of each task derived from the event resource monitored by the assign
+resource monitor is visited.  If @C { t } is not assigned a resource, then
+each element of the domain of @C { t } is assigned to @C { t } using
+@C { KheTaskKempeAssignResource }.
+@PP
+Prefer resources defects are repaired as follows.  The leader @C { t }
+of each task derived from the event resource monitored by the monitor
+is visited.  If @C { t } is assigned a resource which is not in the
+domain of the monitor's constraint, then repairs consisting of
+@C { KheTaskUnassign(t) } followed by
+@C { KheTaskKempeAssignResource(t, r) } are tried for each
+resource @C { r } in that domain.
+@PP
+Avoid split assignments monitors are similar.  All the monitored tasks
+are deassigned and assigned a resource from the domain of one of the
+tasks, using @C { KheTaskKempeAssignResource }.  When some tasks are
+visited, this is only done when at most one distinct resource is
+assigned to the visited tasks, and in that case only it is tried.
+The success rate here is small; a serious repair method should really
+analyse the situation and reassign times as well as resources.
+@PP
+@C { KheResourceRepairResourceMonitorAugment } accepts an avoid
+clashes monitor, an avoid unavailable times monitor, a limit idle
+times monitor, a cluster busy times monitor, a limit busy times
+monitor, a limit workload monitor, or a group monitor containing
+any number of those monitors as its children.
+@PP
+The repair methods for avoid clashes and avoid unavailable times
+defects are stubs (they do nothing and return @C { false }), but
+could easily be implemented (still to do).
+@PP
+The repair methods for limit idle times and cluster busy times
+defects are also stubs.  Repairing these defects is future work.
+@PP
+Limit busy times defects are repaired using exactly the same
+method as limit workload defects, to be described next.  Better
+targeting of their repair is future work.
+@PP
+Limit workload defects are repaired as follows.  Workload
+underloads are not repaired at present (future work).  When the
+resource is overloaded, each repair deassigns one unvisited,
+unpreassigned leader task currently assigned to the resource.
+The disruption is the duration of the task.  Deassigned tasks
+are @I not marked visited, since that would prevent the
+resulting assign resource constraint defects from being repaired.
+This may be a sign that replacement assignments should be
+incorporated into this repair, but that has not been done so far.
+@End @Section
+
+@Section
+    @Title { Beyond the first success }
+    @Tag { ejection.extended }
+@Begin
+@LP
+The usual value of @C { KheEjectorSolve }'s @C { solve_type } parameter,
+@C { KHE_EJECTOR_FIRST_SUCCESS }, causes the first chain that reduces
+the cost of the solution to be accepted.  Most of the discussion in
+previous sections has assumed this type of solve.  This section presents
+the other two values of this parameter, @C { KHE_EJECTOR_MIN_COST } and
+@C { KHE_EJECTOR_MIN_DISRUPTION_THEN_COST }.
+@PP
+@C { KHE_EJECTOR_MIN_COST } causes the ejector to keep searching
+until its search space is exhausted, and then apply the chain that
+reduced the cost of the solution the most, if any.  For example, when
+@C { max_depth } is 1 the result is a steepest-descent hill-climber.
+@PP
+@C { KHE_EJECTOR_MIN_DISRUPTION_THEN_COST } is similar, searching
+for a lexicographically minimum value of the pair
+@ID @C { (disruption, cost) }
+That is, it tries to find a cost-reducing chain of minimum disruption.
+In this case, since disruptions are non-negative, whenever the total
+disruption of the current chain exceeds the disruption of the best
+chain so far (if any), the current chain is terminated.
+@PP
+No changes are needed to augment functions when using these variants;
+the framework takes care of all the details.  @C { KheEjectorSuccess }
+always returns @C { false } when these variants are in use, inducing
+the augment functions to keep searching.
+@PP
+The current chain and the best chain so far (if any) are stored in
+transactions, so the repairs must be based on operations that
+transactions store.  Care must be taken not to implement augment
+functions in a way that causes these transactions to grow to
+enormous length.  In practice, this means that the basic elements
+of repairs must be undone, step by step, in the reverse order to
+how they were done, so that the optimizations which cancel operations
+within transactions in these cases can take effect.  For simple
+assignments and deassignments this is trivial, but for larger
+repairs, such as swaps and Kempe time moves, the only safe
+method is to enclose the repair in a transaction and remove the
+repair by undoing the transaction.  KHE's functions do this.
+@PP
+The running time of each augment here is similar to that of an
+unsuccessful augment using first success.  Since many augments
+are unsuccessful, in theory these variants should not run much
+more slowly than first success.  In practice, however, the author
+has observed them running significantly more slowly, although
+they cannot and do not run indefinitely.
+@End @Section
+
+@EndSections
+@End @Chapter

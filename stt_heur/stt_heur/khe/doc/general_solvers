@@ -1,0 +1,110 @@
+@Chapter
+    @Title { General Solvers }
+    @Tag { general_solvers }
+@Begin
+@LP
+A @I { general solver } solves a solution generally.  The recommended
+interface, defined in @C { khe.h }, is
+@ID { 0.98 1.0 } @Scale @C {
+typedef KHE_SOLN (*KHE_GENERAL_SOLVER)(KHE_SOLN soln);
+}
+A general solver may split meets, build layer trees and task trees,
+assign times and resources, and so on without restriction.  It will
+usually return the solution it is given, but it may return a different
+solution to the same instance, in which case it should delete the
+solution it is given.
+@BeginSections
+
+@Section
+    @Title { Parallel solving }
+    @Tag { general_solvers.parallel }
+@Begin
+@LP
+Function
+@ID @C {
+KHE_SOLN KheParallelSolve(KHE_SOLN soln, int thread_count,
+  KHE_GENERAL_SOLVER solver);
+}
+makes @C { thread_count - 1 } copies of @C { soln } using
+@C { KheSolnCopy } (Section {@NumberOf solutions.objects}) and calls
+@C { solver } in parallel on the original solution and the copies.
+After all threads have completed, it returns the solution with the
+lowest value of @C { KheSolnCost } and deletes the other solutions.
+The value of @C { thread_count } must be at least 1.
+@PP
+The copies are exactly like @C { soln } except that they do
+not lie in any solution group, and the diversifier of the first
+copy is one larger than the diversifier of @C { soln }, the
+diversifier of the second copy is two larger, and so on.  Function
+@C { solver } may use these values to create diverse solutions.
+@PP
+Parallelism is obtained via functions @C { pthread_create } and
+@C { pthread_join } from the Posix threads library.  KHE has been
+carefully designed to ensure that operations carried out in parallel
+on distinct solutions cannot interfere with each other.  If you do
+not have Posix, a simple workaround documented in KHE's makefile
+will allow you to compile KHE without it.  The only difference
+is that @C { KheParallelSolve } solves its solutions sequentially
+rather than in parallel.
+@End @Section
+
+@Section
+    @Title { A general solver }
+    @Tag { general_solvers.general }
+@Begin
+@LP
+Function
+@ID @C {
+KHE_SOLN KheGeneralSolve(KHE_SOLN soln);
+}
+is a single-threaded general solver.  It assumes that @C { soln }
+has just been returned by @C { KheSolnMake }, so it begins with
+@C { KheSolnSplitCycleMeet } and @C { KheSolnMakeCompleteRepresentation }
+and continues with calls to functions defined elsewhere in this guide.
+It returns the solution it is given.  KHE's main program uses it, either
+directly or as the solver passed to @C { KheParallelSolve }.
+@PP
+Here is the implementation:
+@ID @C {
+KHE_SOLN KheGeneralSolve(KHE_SOLN soln)
+{
+  int i;  KHE_EVENT junk;  KHE_NODE root_node;
+
+  /* split the cycle meet then make complete representation */
+  KheSolnSplitCycleMeet(soln);
+  KheSolnMakeCompleteRepresentation(soln, &junk);
+
+  /* build task tree, including assigning preassigned resources */
+  KheTaskTreeMake(soln, KHE_TASK_JOB_HARD_PRC | KHE_TASK_JOB_HARD_ASAC,
+    false, true, true);
+
+  /* build layer tree */
+  root_node = KheLayerTreeMake(soln, true, true, true);
+
+  /* attach matching monitors */
+  KheSolnMatchingSetWeight(soln, KheCost(1, 0));
+  KheSolnMatchingAddAllWorkloadRequirements(soln);
+  KheSolnMatchingAttachAllOrdinaryDemandMonitors(soln);
+
+  /* assign times */
+  KheRootNodeAssignTimes(root_node);
+
+  /* assign resources */
+  for( i = 0;  i < KheSolnTaskingCount(soln);  i++ )
+    KheTaskingAssignResources(KheSolnTasking(soln, i));
+
+  /* detach demand monitors, to give true cost */
+  KheSolnMatchingDetachAllOrdinaryDemandMonitors(soln);
+
+  /* return soln */
+  return soln;
+}
+}
+It builds a task tree, builds a layer tree, and attaches demand
+monitors.  Then it assigns times and assigns resources.  Finally,
+it detaches demand monitors, so that the true cost of the solution
+is reported by @C { KheSolnCost }, and returns.
+@End @Section
+
+@EndSections
+@End @Chapter

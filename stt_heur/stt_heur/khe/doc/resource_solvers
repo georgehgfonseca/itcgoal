@@ -1,0 +1,1158 @@
+@Chapter
+    @Title { Resource Solvers }
+    @Tag { resource_solvers }
+@Begin
+@LP
+A @I { resource solver } assigns resources to tasks, or
+changes existing assignments.  This chapter presents the resource
+solvers packaged with KHE.
+@BeginSections
+
+@Section
+    @Title { Specification }
+    @Tag { resource_solvers.spec }
+@Begin
+@LP
+The recommended interface for resource solvers, defined in
+@C { khe.h }, is
+@ID @C {
+typedef void (*KHE_TASKING_SOLVER)(KHE_TASKING tasking);
+}
+It assigns resources to some of the tasks of @C { tasking }.  Taskings
+were defined in Section {@NumberOf extras.taskings}.
+@PP
+Except for preassignments, there is no reason to assign resources,
+at least in large numbers, before times are assigned.  Accordingly,
+a resource solver may choose to assume that all meets have been
+assigned times.  It may alter time assignments in its quest for
+resource assignments.
+# @PP
+# One example of a resource solver is @C { KheSolnAssignPreassignedResources }
+# from Section {@NumberOf solutions.complete}.  It ensures that all preassigned
+# tasks of the given type (or of all types) are assigned
+# their preassigned values.  It does not assume that times are assigned.
+@PP
+A @I { split assignment } is an assignment of two or more distinct
+resources to the tasks monitored by an avoid split assignments monitor.
+A @I { partial assignment } is an assignment of resources to some of these
+same tasks, but not all.  An assignment can be both split and partial.
+# @PP
+# The author's previous resource solvers @Cite { $kingston2008resource }
+# are either for @I { teacher assignment }, where the event resources
+# are assumed to have avoid split assignments constraints, or for
+# @I { room assignment }, where they are assumed not to.  Since XML
+# instances may apply any number of avoid split assignments constraints
+# of any weight to any event resources, the algorithms presented here
+# hybridize these previous methods.  It is important, however, not to
+# lose sight of the distinction, because it is far easier to assign
+# resources when there are no avoid split assignments constraints.
+@End @Section
+
+@Section
+    @Title { The resource assignment invariant }
+    @Tag { resource_solvers.invt }
+@Begin
+@LP
+If all tasks have duration 1, then the matching defines an assignment
+of resources to tasks which maximizes the number of assignments.
+Although larger durations are common, and maximizing the number of
+assignments is not the only consideration, still it is clear from this
+fact that the matching deserves a central place in resource assignment.
+@PP
+Accordingly, the author's recent work in resource assignment
+@Cite { $kingston2008resource } emphasizes algorithms that
+preserve the following condition, which we call the
+@I { resource assignment invariant }:
+@ID @I {
+The number of unmatchable demand tixels equals its initial value.
+}
+Assignments are permitted only when the number of unmatchable demand
+tixels does not increase.  This keeps the algorithms on a path that
+cannot lead to new violations of required avoid clashes constraints,
+avoid unavailable times constraints, limit busy times constraints,
+and limit workload constraints.  In practice, most tasks can be
+assigned while preserving this invariant.
+@PP
+As a simple but effective aid to using this invariant, KHE offers functions
+@ID @C {
+void KheInvariantTransactionBegin(KHE_TRANSACTION t, int *init_count,
+  bool preserve_invariant);
+bool KheInvariantTransactionEnd(KHE_TRANSACTION t, int *init_count,
+  bool preserve_invariant, bool success);
+}
+Modelled after @C { KheTransactionBegin } and @C { KheTransactionEnd },
+they are called in matching pairs, with the same values for the first
+three parameters.  If @C { preserve_invariant } is @C { false }, both
+functions do nothing, except that @C { KheInvariantTransactionEnd }
+returns the value of its @C { success } parameter.  This makes it
+trivial to implement algorithms which either preserve the invariant or
+not, depending on the value of a @C { preserve_invariant } parameter.
+@PP
+When @C { preserve_invariant } is @C { true }, @C { t } must
+be non-@C { NULL } and @C { *init_count } must point to a
+variable used only by these calls.  (They use it to hold
+@C { KheSolnMatchingDefectCount } at the moment
+@C { KheInvariantTransactionBegin } is called.)  The functions
+are used like this:
+@ID @C {
+KheInvariantTransactionBegin(t, &init_count, preserve_invariant);
+... try something and set success to true if it works ...
+KheInvariantTransactionEnd(t, &init_count, preserve_invariant, success);
+}
+@C { KheInvariantTransactionBegin } calls @C { KheTransactionBegin(t) }
+and stores the initial value of @C { KheSolnMatchingDefectCount }
+in @C { init_count }.  @C { KheInvariantTransactionEnd } calls
+@C { KheTransactionEnd(t) } and undoes the transaction if @C { success }
+is @C { false } or the final value of @C { KheSolnMatchingDefectCount }
+exceeds the initial value, returning this condition to the caller:
+@IndentedList
+
+@LI -1px @Break @C {
+void KheInvariantTransactionBegin(KHE_TRANSACTION t, int *init_count,
+  bool preserve_invariant)
+{
+  KHE_SOLN soln;
+  if( preserve_invariant )
+  {
+    soln = KheTransactionSoln(t);
+    *init_count = KheSolnMatchingDefectCount(soln);
+    KheSolnMatchingMarkBegin(soln);
+    KheTransactionBegin(t);
+  }
+}
+}
+
+@LI -1px @Break @C {
+bool KheInvariantTransactionEnd(KHE_TRANSACTION t,
+  int *init_count, bool preserve_invariant, bool success)
+{
+  KHE_SOLN soln;
+  if( preserve_invariant )
+  {
+    soln = KheTransactionSoln(t);
+    KheTransactionEnd(t);
+    if( KheSolnMatchingDefectCount(soln) > *init_count )
+      success = false;
+    if( !success )
+      KheTransactionUndo(t);
+    KheSolnMatchingMarkEnd(soln, !success);
+  }
+  return success;
+}
+}
+
+@EndList
+Opportunity has been taken to optimize the matching by calling
+@C { KheSolnMatchingMarkBegin } and @C { KheSolnMatchingMarkEnd }
+(Section {@NumberOf matchings.setup}).
+@End @Section
+
+@Section
+    @Title { Task trees }
+    @Tag { resource_solvers.task_trees }
+@Begin
+@LP
+What meets do for time, tasks do for resources.  A meet has a time
+domain and assignment; a task has a resource domain and assignment.
+Link events constraints cause meets to be assigned to other meets;
+avoid split assignments constraints cause tasks to be assigned to
+other tasks.
+@PP
+There are differences.  Tasks lie in meets, but meets do not lie
+in tasks.  Task assignments do not have offsets, because there is
+no significant ordering of resources like chronological ordering
+for times.  (If offsets are ever added, they will be time offsets,
+not resource offsets.)
+@PP
+Since the layer tree is successful in structuring meets for
+time assignment, let us see what an analogous tree for structuring
+tasks for resource assignment would look like.  A layer tree is
+a tree, whose nodes each contain a set of meets.  The root node
+contains the cycle meets.  A meet's assignment, if present, lies
+in the parent of its node.   By convention, meets lying outside
+nodes are assigned to meets lying inside nodes, and time solvers do
+not change those assignments.
+@PP
+A @I { task tree }, then, is a tree whose nodes each contain a set of
+tasks.  The root node contains the cycle tasks (or there might be
+several root nodes, one for each resource type).  A task's
+assignment, if present, lies in the parent of its node.  By
+convention, tasks lying outside nodes are assigned to tasks lying
+inside nodes, and resource solvers do not change those assignments.
+@PP
+Type @C { KHE_TASKING } is KHE's nearest equivalent to a task
+tree node.  It holds an arbitrary set of tasks, but there is
+no support for organizing taskings into a tree structure.  This
+is because, in practice, resource solving does not seem to need
+it.  It is useful, however, to look at how tasks are structured
+in practice, and to relate this to task trees and nodes, even
+though they are not explicitly supported by KHE.
+@PP
+When a task is assigned to a non-cycle task, that implements
+an avoid split assignments constraint, and resource solvers
+should not change the task's assignment.  Such tasks would
+therefore lie outside nodes (if there were any).  When a solver
+assigns a task to a cycle task (when it assigns a resource),
+the task would have to lie in a child node of a node containing
+the cycle tasks (again, if there were any).  So there are three
+levels:  a first level of nodes containing the cycle tasks; a
+second level of nodes containing tasks wanting to be assigned
+resources; and a third level of assigned tasks that do not lie
+in nodes.
+@PP
+This shows that the three-way classification of tasks presented
+in Section {@NumberOf solutions.tasks.asst} is a proxy for the
+missing task tree structure.  Cycle tasks are first-level tasks,
+leader tasks are second-level tasks, and follower tasks are
+third-level tasks.  @C { KHE_TASKING } is only needed for
+representing second-level nodes, since tasks at the other
+levels do not require assignment.  By convention, then,
+taskings will contain only leader tasks.
+@BeginSubSections
+
+@SubSection
+    @Title { Task tree construction }
+    @Tag { resource_solvers.task_tree.construction }
+@Begin
+@LP
+KHE offers a solver for building a task tree holding the tasks
+of a given solution:
+@ID @C {
+void KheTaskTreeMake(KHE_SOLN soln, KHE_TASK_JOB_TYPE tjt,
+  bool preserve_invariant, bool check_prefer_resources_monitors,
+  bool check_avoid_split_assignments_monitors);
+}
+Like any good solver, this function has no special access to data
+behind the scenes.  Instead, it works by calling basic operations
+and helper functions:
+@BulletList
+
+@LI {
+It calls @C { KheTaskingMake } to make one tasking for each resource
+type of @C { soln }'s instance, and it calls @C { KheTaskingAddTask }
+to add the leader tasks of each type to the tasking it made for that type.
+These taskings may be accessed by calling @C { KheSolnTaskingCount }
+and @C { KheSolnTasking } as usual, and they are returned in an order
+suited to resource assignment, as follows.  Taskings for which
+@C { KheResourceTypeDemandIsAllPreassigned(rt) } is @C { true }
+come first.  Their tasks will be assigned already if
+@C { KheSolnAssignPreassignedResources } has been called, as it
+usually has been.  The remaining taskings are sorted by decreasing
+order of @C { KheResourceTypeAvoidSplitAssignmentsCount(rt) }.
+These functions are described in Section {@NumberOf resource_types}.
+Of course, the user is not obliged to follow this ordering.  It is
+a precondition of @C { KheTaskTreeMake } that @C { soln } must have
+no taskings when it is called.
+}
+
+@LI {
+It calls @C { KheTaskAssign } to convert resource preassignments into
+resource assignments, and to satisfy avoid split assignments constraints,
+as far as possible.  Existing assignments are preserved (no calls to
+@C { KheTaskUnAssign } are made).
+}
+
+@LI {
+It calls @C { KheTaskSetDomain } to set the domains of tasks to
+satisfy preassigned resources, prefer resources constraints, and
+other influences on task domains, as far as possible.
+@C { KheTaskTreeMake } never adds a resource to any domain, however;
+it either leaves a domain unchanged, or reduces it to a subset of
+its initial value.
+}
+
+@LI {
+If { 0.95 1.0 } @Scale @C { check_prefer_resources_monitors } is
+@C { true }, it applies { 0.95 1.0 } @Scale @C { KheMonitorAttachCheck }
+to each prefer resources monitor which monitors any affected task,
+consistent with the attachment and grouping invariant
+(Section {@NumberOf grouping.conventions}).
+}
+
+@LI {
+If { 0.95 1.0 } @Scale @C { check_avoid_split_assignments_monitors } is
+@C { true }, it applies { 0.95 1.0 } @Scale @C { KheMonitorAttachCheck }
+to each avoid split assignments monitor which monitors any affected task,
+consistent with the attachment and grouping invariant
+(Section {@NumberOf grouping.conventions}).
+}
+
+@EndList
+These elements interact in ways that make them impossible to
+separate.  For example, a prefer resources constraint that
+applies to one task effectively applies to all the tasks that
+are linked to it, directly or indirectly, by avoid split
+assignments constraints.  The two parameters not yet mentioned,
+@C { tjt } and @C { preserve_invariant }, are explained below.
+@PP
+The implementation of @C { KheTaskTreeMake } has two stages.  The
+first creates one tasking for each resource type of @C { soln }'s
+instance, in the order described, and adds to each the leader tasks
+of its type.  This stage can be carried out separately by repeated
+calls to
+@ID @C {
+KHE_TASKING KheTaskingMakeFromResourceType(KHE_SOLN soln,
+  KHE_RESOURCE_TYPE rt);
+}
+which makes a tasking containing the leader tasks of @C { soln } of
+type @C { rt }, or of all types if @C { rt } is @C { NULL }.  It
+aborts if any of these leader tasks already lies in a tasking.
+@PP
+The second stage is more complex.  It applies public function
+@ID @C {
+void KheTaskingMakeTaskTree(KHE_TASKING tasking, KHE_TASK_JOB_TYPE tjt,
+  bool preserve_invariant, bool check_prefer_resources_monitors,
+  bool check_avoid_split_assignments_monitors);
+}
+to each tasking made by the first stage.  When @C { KheTaskingMakeTaskTree }
+is called from within @C { KheTaskTreeMake }, its parameters other than
+@C { tasking } are inherited from @C { KheTaskTreeMake }.
+@PP
+As specified for @C { KheTaskTreeMake }, @C { KheTaskingMakeTaskTree }
+assigns tasks and tightens domains; it does not unassign tasks or
+loosen domains.  If @C { preserve_invariant } is @C { true }, only
+assignments and tightenings that preserve the resource assignment
+invariant (Section {@NumberOf resource_solvers.invt}) are kept.
+Tasks assigned to non-cycle tasks cease to be leader tasks, so are
+deleted from @C { tasking }.
+@PP
+The implementation of @C { KheTaskingMakeTaskTree } imitates the layer
+tree construction algorithm:  it applies @I jobs in decreasing priority
+order.  There are fewer kinds of jobs, but the situation is more complex
+in another way:  sometimes, some kinds of jobs are wanted but not others.
+The three kinds of jobs of highest priority install existing domains and
+task assignments, and assign resources to unassigned tasks derived from
+preassigned event resources.  These jobs are always included; the first
+two always succeed, and so does the third unless the user has made
+peculiar task or domain assignments earlier.  The other kinds of jobs
+are optional, and parameter @C { tjt } of @C { KheTaskingMakeTaskTree }
+says which of them are wanted.  Its type is
+@ID @C {
+typedef enum {
+  KHE_TASK_JOB_HARD_PRC = 1,
+  KHE_TASK_JOB_SOFT_PRC = 2,
+  KHE_TASK_JOB_HARD_ASAC = 4,
+  KHE_TASK_JOB_SOFT_ASAC = 8,
+  KHE_TASK_JOB_PARTITION = 16
+} KHE_TASK_JOB_TYPE;
+}
+As the reader has probably guessed, @C { tjt } is actually a set.
+@PP
+If @C { KHE_TASK_JOB_HARD_PRC } is included in @C { tjt }, a job
+is made for each point of application of each hard (required)
+prefer resources constraint of non-zero weight.  The priority
+of a job of this kind is the combined weight of its constraint,
+and it attempts to reduce the domains of the tasks of @C { tasking }
+monitored by the constraint's monitors so that they are subsets of
+the constraint's domain.  @C { KHE_TASK_JOB_SOFT_PRC } is the same,
+except that it requests jobs for soft (non-required) constraints.
+@PP
+If @C { KHE_TASK_JOB_HARD_ASAC } is included in @C { tjt }, a job
+is made for each point of application of each hard avoid split
+assignments constraint of non-zero weight.  Its priority is the
+combined weight of its constraint, and it attempts to assign
+tasks to each other so that all the tasks of the job's point
+of application of the constraint are assigned, directly or
+indirectly, to the same root task.  Again, only tasks lying
+in @C { tasking } are affected.  @C { KHE_TASK_JOB_SOFT_ASAC }
+is the same, except that it requests jobs for soft constraints.
+@PP
+If @C { KHE_TASK_JOB_PARTITION } is included in @C { tjt },
+a very peculiar job, of minimal priority, is included.
+The remainder of this section is devoted to explaining it.
+@PP
+We begin by explaining the circumstances in which it is useful.
+For definiteness, suppose we are dealing with teachers, and that
+they have partitions (Section {@NumberOf resource_types}) which
+are their faculties (English, Mathematics, Science, and so on).
+Some partitions may be heavily loaded (that is, required to
+supply teachers for tasks whose total workload approaches the
+total available workload of their resources) while others are
+lightly loaded.
+@PP
+Some tasks may be taught by teachers from more than one partition.
+These @I { multi-partition tasks } should be assigned to teachers from
+lightly loaded partitions, and so should not overlap in time with
+other tasks from these partitions.  @C { KHE_TASK_JOB_PARTITION }
+tightens the domain of each multi-partition task to one partition;
+the choice of partition is explained below.  It is best to do this
+after preassigned meets have been assigned, but before general time
+assignment.  The tightened domains encourage time assignment to
+avoid the undesirable overlaps.
+@PP
+After time assignment, the changes should be removed, since
+otherwise they constrain resource assignment unnecessarily.
+Another call to @C { KheTaskingMakeTaskTree } could be used
+to do this, but a transaction is probably better:
+@ID @C {
+KheTransactionBegin(t);
+for( i = 0;  i < KheSolnTaskingCount(soln);  i++ )
+  KheTaskingTightenToPartition(KheSolnTasking(soln, i));
+KheTransactionEnd(t);
+... assign times ...
+KheTransactionUndo(t);
+}
+since it restores the domains to their previous values.
+@C { KheTaskingTightenToPartition }, defined below, is just
+a wrapper for a call to @C { KheTaskingMakeTaskTree }.
+@PP
+This job does nothing when the tasking has no resource type,
+or the tasks of its resource type are all preassigned
+according to @C { KheResourceTypeDemandIsAllPreassigned }
+(Section {@NumberOf resource_types}), or the resource type has
+no partitions, or its number of partitions is less than four
+or more than one-third of its number of resources.  Nothing useful
+can be done in these cases.
+@PP
+Tasks whose domains lie entirely within one partition are not touched.
+The remaining multi-partition tasks are sorted by decreasing combined
+weight then duration, except that tasks with a @I { dominant partition }
+come first.  A task with an assigned resource has a dominant partition,
+namely the partition that its assigned resource lies in.  An unassigned
+task has a dominant partition when at least three-quarters of the
+resources of its domain come from that partition.
+@PP
+For each task in turn, an attempt is made to tighten its domain so
+that it is a subset of one partition.  If the task has a dominant
+partition, only that partition is tried.  Otherwise, the partitions
+that the task's domain intersects with are tried one by one, stopping
+at the first success, after sorting them by decreasing average
+available workload (defined next).
+@PP
+Define the @I { workload supply } of a partition to be the sum, over
+the resources @M { r } of the partition, of the number of times in
+the cycle minus the number of workload demand monitors for @M { r }
+in the matching.  Define the @I { workload demand } of a partition
+to be the sum, over all tasks @M { t } whose domain is a subset of
+the partition, of the workload of @M { t }.  Then the
+@I { average available workload } of a partition is its workload
+supply minus its workload demand, divided by its number of resources.
+Evidently, if this is large, the partition is lightly loaded.
+@PP
+Each successful tightening increases the workload demand of its
+partition.  This ensures that equally lightly loaded partitions
+share multi-partition tasks equally.
+@PP
+In a task with an assigned resource, the dominant partition is the
+only one compatible with the assignment.  In a task without an
+assigned resource, preference is given to a dominant partition, if
+there is one, for the following reason.  Schools often have a few
+@I { generalist teachers } who are capable of teaching junior
+subjects from several faculties.  These teachers are useful for
+fixing occasional problems, smoothing out workload imbalances,
+and so on.  But the workload that they can give to faculties other
+than their own is limited and should not be relied on.  For
+example, suppose there are five Science teachers plus one
+generalist teacher who can teach junior Science.  That should
+not be taken by time assignment as a licence to routinely schedule
+six Science meets simultaneously.  Domain tightening to a dominant
+partition avoids this trap.
+@PP
+Tightening by partition works best when @C { preserve_invariant }
+is @C { true }.  For example, in a case like Sport where there
+are many simultaneous multi-partition tasks, tightening by
+partition will then not tighten more of them to a lightly loaded
+partition than there are teachers in that partition.  Assigning
+preassigned meets beforehand improves the effectiveness of this check.
+@End @SubSection
+
+@SubSection
+    @Title { Task tree reorganization }
+    @Tag { resource_solvers.task_tree.reorganization }
+@Begin
+@LP
+This section documents some miscellaneous functions that reorganize
+task trees, represented by taskings.  They assume that only leader
+tasks lie in taskings, and they preserve this condition.  Some
+merely call @C { KheTaskingMakeTaskTree }, passing logical
+combinations of parameters; others are separate algorithms.
+@PP
+The operation of tightening domains to a partition was discussed
+at some length above.  For convenience, this operation is packaged
+as function
+@ID @C {
+void KheTaskingTightenToPartition(KHE_TASKING tasking);
+}
+It tightens the domains of some tasks, without any wholesale
+reconstruction of the task tree:
+@ID @C {
+void KheTaskingTightenToPartition(KHE_TASKING tasking)
+{
+  KheTaskingMakeTaskTree(tasking, KHE_TASK_JOB_PARTITION,
+    true, false, false);
+}
+}
+The call to @C { KheTaskingMakeTaskTree } asks for the resource
+assignment invariant to be preserved (best here), but not for prefer
+resources monitors to be checked.  Any tightening of domains
+introduces the theoretical possibility that some prefer resources
+monitors could be safely detached, but there are likely to be few
+cases here.  Also, monitor attaching and unattaching operations
+are currently not captured by transactions, so reattaching them
+later could be messy.
+@PP
+A good way to minimize split assignments is to prohibit them at
+first but allow them later.  To change a tasking from the first
+state to the second, call
+@ID @C {
+void KheTaskingAllowSplitAssignments(KHE_TASKING tasking,
+  bool unassigned_only);
+}
+It unassigns the followers of the tasks of @C { tasking } and adds
+them to @C { tasking }.  If one of the original leader tasks is
+assigned (to a cycle task), its former followers are assigned to
+that task, so that existing resource assignments are not
+forgotten.  If @C { unassigned_only } is @C { true }, only the
+followers of unassigned leader tasks are affected.  (This option
+is included for completeness, but it is not recommended, since it
+leaves few choices open.)  @C { KheMonitorAttachCheck } is applied
+to each affected avoid split assignments monitor, so that the cost
+of any split assignments created later will not be overlooked.
+@C { KheTaskingAllowSplitAssignments } cannot fail, and it cannot
+fail to preserve the resource assignment invariant.
+@PP
+If any room or any teacher is better than none, then it will
+be worth assigning any resource to tasks that remain unassigned
+at the end of resource assignment.  Function
+@ID { 0.98 1.0 } @Scale @C {
+void KheTaskingEnlargeDomains(KHE_TASKING tasking, bool unassigned_only);
+}
+permits this by enlarging the domains of the leader tasks of
+@C { tasking } to the full set of resources of their resource types.
+The @C { recursive } flag of @C { KheTaskSetDomain } is used to
+ensure that follower tasks have their domains enlarged too and cannot
+obstruct the operation.  If @C { unassigned_only } is true, only
+unassigned leader tasks are affected.  @C { KheMonitorAttachCheck }
+is applied to each affected prefer resources monitor, so that the
+cost of making these last-ditch assignments is not overlooked.  Like
+@C { KheTaskingAllowSplitAssignments }, this operation cannot fail,
+and it cannot fail to preserve the resource assignment invariant.
+@PP
+Several of the algorithms above apply @C { KheMonitorAttachCheck }
+to all affected monitors.  This operation is available separately
+as helper function
+@ID @C {
+void KheTaskingMonitorAttachCheck(KHE_TASKING tasking,
+  KHE_MONITOR_TAG tag, bool unassigned_only);
+}
+For each leader task of @C { tasking }, or each unassigned leader
+if @C { unassigned_only } is @C { true }, it visits the task and
+all its followers.  For each of those tasks which possesses an event
+resource, it traverses the monitors of that event resource, using
+@C { KheEventResourceMonitorCount } and @C { KheEventResourceMonitor }
+from Section {@NumberOf monitoring.event_resource_monitors}, and calls
+@C { KheMonitorAttachCheck } on each of those monitors whose type is
+@C { tag }.
+@PP
+Assign resource monitors, prefer resources monitors, and avoid
+split assignments monitors are the only event resource monitors,
+so @C { tag } should be @C { KHE_ASSIGN_RESOURCE_MONITOR_TAG },
+@C { KHE_PREFER_RESOURCES_MONITOR_TAG }, or
+@C { KHE_AVOID_SPLIT_ASSIGNMENTS_MONITOR_TAG }.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Task groups }
+    @Tag { resource_solvers.task_groups }
+@Begin
+@LP
+There are cases where two tasks are interchangeable as far as
+resource assignment is concerned, because they demand the same
+kinds of resources at the same times.  The @I { task group }
+embodies KHE's approach to taking advantage of interchangeable tasks.
+@PP
+The @I { full task set } of a leader task is the task itself and all
+the tasks assigned to it, directly or indirectly (all its followers),
+omitting tasks that do not lie in a meet.  A leader task is
+@I { time-complete } if each task of its full task set lies in a
+meet that has been assigned a time.  Two time-complete tasks are
+@I { time-equal } if their full task sets have equal cardinality,
+and the two sets can be sorted so that corresponding tasks have
+equal starting times, durations, and workloads.  Two leader tasks
+are @I interchangeable if they are time-complete and time-equal,
+and their domains are equal.  When two resources are assigned to
+two interchangeable tasks, either resource can be assigned to
+either task and it does not matter which is assigned to which.
+@PP
+A @I { task group } is a set of pairwise interchangeable tasks.
+Task groups occur naturally when there are linked events, or when
+time assignments are regular.  Virtually any resource assignment
+algorithm can benefit from task groups.  Assigning to a task group
+rather than to a task eliminates symmetries that can slow down
+searching.  A given resource can only be assigned to one task of
+a task group, since its tasks overlap in time, so task groups help
+with estimating realistically how many resources are available,
+and how much workload is open to a resource.
+@PP
+Objects of type @C { KHE_TASK_GROUP } hold one set of interchangeable
+tasks, and objects of type @C { KHE_TASK_GROUPS } hold a set of task
+groups.  Such a set can be created by calling
+@ID @C {
+KHE_TASK_GROUPS KheTaskGroupsMakeFromTasking(KHE_TASKING tasking);
+}
+It places every task of @C { tasking } into one task group.
+The task groups are maximal.
+# @C { KheTaskGroupsMakeFromTasking } begins by calling
+# @C { KheTaskingSortForTaskGroups }, a public function (not elsewhere
+# documented) which sorts the tasks of @C { tasking } and the tasks
+# of those tasks in a way that makes the job of
+# @C { KheTaskGroupsMakeFromTasking } easy.  The tasks
+# of each task are sorted so that tasks whose solution
+# events have an assigned time come first.  Among tasks
+# with an assigned time, those with earlier times precede those with
+# later times.  The tasks of @C { tasking } are then sorted to bring
+# interchangeable tasks together.
+@PP
+To remove a set of task groups (but not their tasks), call
+@ID @C {
+void KheTaskGroupsDelete(KHE_TASK_GROUPS task_groups);
+}
+To access the task groups, call
+@ID { 0.98 1.0 } @Scale @C {
+int KheTaskGroupsTaskGroupCount(KHE_TASK_GROUPS task_groups);
+KHE_TASK_GROUP KheTaskGroupsTaskGroup(KHE_TASK_GROUPS task_groups, int i);
+}
+To access the tasks of a task group, call
+@ID @C {
+int KheTaskGroupTaskCount(KHE_TASK_GROUP task_group);
+TASK KheTaskGroupTask(KHE_TASK_GROUP task, int i);
+}
+There must be at least one task in a task group, otherwise the task
+group would not have been made.  Task groups are not kept up to date
+as the solution changes, so if time assignments are being altered
+the affected tasks cannot be relied upon to remain interchangeable.
+@PP
+The tasks of a task group have the same total duration, total
+workload, and domain, and these common values are returned by
+@ID @C {
+int KheTaskGroupTotalDuration(KHE_TASK_GROUP task_group);
+float KheTaskGroupTotalWorkload(KHE_TASK_GROUP task_group);
+KHE_RESOURCE_GROUP KheTaskGroupDomain(KHE_TASK_GROUP task_group);
+}
+@C { KheTaskGroupTotalDuration } is the value of
+@C { KheTaskTotalDuration } shared by the tasks, not the sum of
+their durations; and similarly for @C { KheTaskGroupTotalWorkload }.
+@PP
+For the convenience of algorithms that use task groups, function
+@ID @C {
+int KheTaskGroupDecreasingDurationCmp(KHE_TASK_GROUP tg1,
+  KHE_TASK_GROUP tg2);
+}
+is a comparison function that may be used when sorting task groups
+by decreasing duration.
+@PP
+Because the tasks of a task group are interchangeable, it does not
+matter which of them is assigned when assigning resources to them.
+This makes the following functions possible:
+@ID @C {
+int KheTaskGroupUnassignedTaskCount(KHE_TASK_GROUP task_group);
+bool KheTaskGroupAssignCheck(KHE_TASK_GROUP task_group, KHE_RESOURCE r);
+bool KheTaskGroupAssign(KHE_TASK_GROUP task_group, KHE_RESOURCE r);
+void KheTaskGroupUnAssign(KHE_TASK_GROUP task_group, KHE_RESOURCE r);
+}
+@C { KheTaskGroupUnassignedTaskCount } returns the number of
+unassigned tasks in @C { task_group }; @C { KheTaskGroupAssignCheck }
+checks whether @C { r } can be assigned to a task of @C { task_group }
+(by finding the first unassigned task and checking there);
+@C { KheTaskGroupAssign } is the same, only it actually makes
+the assignment, using @C { KheTaskAssign }, if it can; and
+@C { KheTaskGroupUnAssign } finds a task of @C { task_group }
+currently assigned @C { r }, and unassigns that task.
+@PP
+The tasks of a task group may have different constraints, in which
+case assigning one may change the solution cost differently from
+assigning another.  This is handled heuristically as follows.
+The first time @C { KheTaskGroupAssign } returns @C { true }, it
+tries assigning @C { r } to each task of the task group, notes
+the solution cost after each, and sorts the tasks into increasing
+order of this cost.  Then it and all later calls assign the first
+unassigned task in this order.
+@PP
+The usual debug functions are available:
+@ID { 0.97 1.0 } @Scale @C {
+void KheTaskGroupDebug(KHE_TASK_GROUP task_group, int verbosity,
+  int indent, FILE *fp);
+void KheTaskGroupsDebug(KHE_TASK_GROUPS task_groups, int verbosity,
+  int indent, FILE *fp);
+}
+print @C { task_group } and @C { task_groups } onto @C { fp }
+with the given verbosity and indent.
+@End @Section
+
+@Section
+    @Title { Most-constrained-first assignment }
+    @Tag { resource_solvers.most_constrained_first }
+@Begin
+@LP
+When each leader task has no followers, so that each demands a
+resource for a single interval of time, as is usual with room
+assignment, a simple `most constrained first' heuristic
+assignment algorithm that maintains the resource assignment
+invariant is usually sufficient to obtain a virtually optimal
+assignment.  Function
+@ID @C {
+void KheMostConstrainedFirstAssignResources(KHE_TASKING tasking);
+}
+implements this algorithm.  It attempts to assign each unassigned
+leader task of @C { tasking }, leaving assigned ones untouched.  For
+each such task, it maintains the set of resources that can currently
+be assigned to the task without increasing the number of unmatchable
+demand tixels.  It repeatedly selects a task with the fewest number
+of such resources, assigns it if possible, and repeats until all
+tasks have been handled.
+@PP
+The chosen assignment must preserve the resource assignment
+invariant.  If no resources satisfy that condition, the task
+remains unassigned.  Among all resources that satisfy it, as
+a first priority a resource whose assignment minimizes
+@C { KheSolnCost } is chosen, and as a second priority,
+resources that have already been assigned to other tasks of the
+event resources of the task and the tasks assigned to it are
+preferred.  In this way, even when an avoid split assignments
+constraint is not present, the algorithm favours assigning the same
+resource to all the tasks of a given event resource, for regularity.
+@PP
+@C { KheMostConstrainedFirstAssignResources } actually assigns
+task groups (Section {@NumberOf resource_solvers.task_groups}),
+not individual tasks.  Each task of a task group is assignable
+by the same resources, so one list of suitable resources is kept
+per task group.  At each step, a task group is selected for
+assignment for which the number of suitable resources minus the
+number of unassigned tasks is minimal.
+@PP
+When a resource is assigned to a task, it becomes less available, so
+its suitability for assignment to its other task groups is rechecked.
+If it proves to be no longer assignable to some of them, their
+priorities are changed.  The task groups are held in a priority queue
+(Appendix {@NumberOf modules.priqueue}), which allows their queue
+positions to be updated efficiently when their priorities change.
+@End @Section
+
+@Section
+    @Title { Resource packing }
+    @Tag { resource_solvers.pack }
+@Begin
+@LP
+To @I pack a resource means to find assignments of tasks to the
+resource that make the solution cost as small as possible, while
+preserving the resource assignment invariant, in effect utilizing
+the resource as much as possible @Cite { $kingston2008resource }.
+Function
+@ID @C {
+void KheResourcePackAssignResources(KHE_TASKING tasking);
+}
+assigns resources to the unassigned tasks of @C { tasking } using
+resource packing, as follows.
+@PP
+The tasks are clustered into task groups
+(Section {@NumberOf resource_solvers.task_groups}).  Two numbers
+help to estimate the difficulty of utilizing a resource effectively:
+the @I { demand duration } and the @I { supply duration }.  A
+resource's demand duration is the total duration of the task groups
+it is assignable to.  Its supply duration is the number of times it
+is available for assignment:  the cycle length, minus the number of
+its workload demand monitors, minus the total duration of any tasks
+it is already assigned to.
+@PP
+The resources are placed in a priority queue, ordered by
+increasing demand duration minus supply duration.  That is,
+the less demand there is for the resource, or the more supply,
+the more important it is to pack it sooner rather than later.
+In practice, part-time teachers come first in this order, which
+is good, because they are difficult to utilize effectively.
+@PP
+The main loop of the algorithm removes a resource of minimum
+priority from the priority queue and packs it.  If this causes
+any task groups to become completely assigned, they are unlinked
+from the resources assignable to them, reducing those resources'
+demand durations and thus altering their position in the priority
+queue.  This is repeated until the queue is empty.
+@PP
+The algorithm for packing one resource is a simple binary tree
+search.  The available task groups of the resource are taken in
+decreasing total duration order.  This encourages the tree search
+to assign more difficult tasks before easier ones.  At each tree
+node, one available task group is either assigned or not assigned
+to the resource.  The search tree has a moderate depth limit.  At
+the limit, the algorithm switches to a simple linear heuristic which
+assigns the resource to as many of the remaining tasks as it can.
+# @PP
+# , encouraging the algorithso that those which will be hardest to
+# repair if left unassigned are tried first.  Tasks of greater duration
+# are harder to repair than tasks of lesser duration, and tasks which
+# are part of large electives are harder to repair than tasks which
+# are not.  This is because, later on, an attempt may be made to
+# swap the meets of unassigned tasks to times when suitable resources
+# are available, and such swaps are not usually possible for large
+# electives.
+# This is why no attempt is made to detect and make forced assignments:
+# they may be to easy task groups which should be assigned with low
+# priority.  The resource assignment invariant prevents the algorithm
+# from wandering out of line.
+@End @Section
+
+@Section
+    @Title { Split assignments }
+    @Tag { resource_solvers.split }
+@Begin
+@LP
+After solver functions such as
+@C { KheMostConstrainedFirstAssignResources }
+(Section {@NumberOf resource_solvers.most_constrained_first}) and
+@C { KheEjectionChainRepairResources }
+(Section {@NumberOf resource_solvers.repair.ejection }) have assigned
+resources to most tasks, some tasks may remain unassigned.  These will
+have to receive split assignments.  Function
+@ID @C {
+void KheFindSplitResourceAssignments(KHE_TASKING tasking);
+}
+reduces the cost of the solution as much as it can, by making split
+assignments to the unassigned tasks of @C { tasking } while maintaining
+the resource assignment invariant.  Any tasks which were unassigned to
+begin with are replaced in @C { tasking } by their child tasks.
+@PP
+At the core of @C { KheFindSplitResourceAssignments } is a procedure
+which takes every pair of resources capable of constituting a split
+assignment to some task and tries to assign them greedily to the task,
+keeping the assignment that produces the lowest solution cost.  However,
+before entering on that, @C { KheFindSplitResourceAssignments }
+eliminates resources that cannot be assigned even to one child task,
+makes assignments that are forced because there is only one available
+resource (not forgetting that one forced assignment might lead
+to another, or that once a resource has been assigned to one
+child task it makes sense to assign it to as many others as
+possible), and divides each task into independent components
+(in the sense that no resource is assignable to two components).
+In practice, much of what it does is more or less forced.
+@End @Section
+
+#@Section
+#    @Title { Residual assignments }
+#    @Tag { resource_solvers.residual }
+#@Begin
+#@LP
+#@I { Probably omit this now; use ejection chains instead,
+#as part of KheTaskingAssignResources }
+#@PP
+#At the very end of resource assignment, there is a need to
+#finish off by making whatever assignments reduce the solution
+#cost, irrespective of how split they are or whether they
+#maintain the resource assignment invariant.  Function
+#@ID @C {
+#void KheFindResidualResourceAssignments(KHE_TASKING tasking);
+#}
+#does this.  It replaces all the unassigned grouped tasks of
+#@C { tasking } by their component tasks, then collects these
+#unassigned tasks and sorts them by decreasing workload, and
+#by increasing domain size when workloads are equal.
+#@PP
+#It makes three passes over the unassigned tasks.  In the first
+#pass, it tries to assign one of the resources lying within each
+#task's domain while maintaining the resource assignment invariant.
+#In the second pass, it tries to assign one of the resources lying
+#in each task's domain, without trying to maintain the invariant.
+#In the third pass, it enlarges each remaining task's domain to
+#the entire set of resources of the task's type, and tries to
+#assign one of those resources, again without trying to maintain
+#the invariant.  In each pass it retains the best assignment, if
+#there is one which reduces the cost of the solution.
+#@PP
+#Before enlarging a domain, @C { KheFindResidualResourceAssignments }
+#ensures that the prefer resources constraints that monitor the task
+#are attached to the solution and grouped somewhere (anywhere) under
+#the solution (that is, it attaches and groups them as required).
+#Thus they will be sure to report the cost of assigning outside the
+#usual domain.
+#@End @Section
+
+@Section
+    @Title { Kempe resource assignments }
+    @Tag { resource_solvers.kempe }
+@Begin
+@LP
+Suppose that every meet has been assigned a time.  Build a graph
+with one node for each task of some tasking, and join two nodes
+with an edge when their tasks overlap in time.  The problem of
+assigning resources to these tasks is a graph colouring problem
+on this graph, with one colour for each resource, subject to
+various additional constraints.
+@PP
+Suppose we try to colour some node and find that all of the
+acceptable colours are in use in adjacent nodes.  A Kempe
+chain applied to this problem would attempt to exchange
+certain tasks assigned to two resources, to free up a colour.
+This does not seem likely to work well for the resource
+assignment application, although one can't be sure without
+trying it.
+@PP
+What does work, however, is to try to make the colour available
+by deassigning the adjacent nodes with that colour, and use
+ejection chains to reassign the newly deassigned nodes
+@Cite { $kingston2008resource }.  One step of this approach
+assigns a colour to one node and deassigns the zero or more
+adjacent nodes with the same colour.  This operation will be
+called a @I { Kempe resource assignment }.  It is not the same
+as a Kempe time move (it assigns, not moves, and it does not go
+beyond the immediate neighbours), but it is based on similar ideas.
+@PP
+KHE offers an implementation of Kempe resource assignment:
+@ID @C {
+bool KheTaskKempeAssignResource(KHE_TASK task, KHE_RESOURCE r);
+}
+Here @C { task } must be a leader task.  The function works as follows.
+@PP
+First, it calls @C { KheResourceHardUnavailableTimeGroup(r) }
+(Section {@NumberOf resources_resources}) to determine when @C { r }
+is unavailable, returning @C { false } if @C { task } is running at
+any of those times.  Next, by consulting @C { r }'s timetable monitor
+at the times of @C { task }, it finds the tasks assigned @C { r }
+that clash with @C { task } and deassigns their leader tasks, except
+that, if any of them are preassigned @C { r }, it returns @C { false }.
+Finally, it calls @C { KheTaskAssignResource(task, r) } and returns
+@C { false } if it does.
+@PP
+Like Kempe time moves, failed Kempe resource assignments leave
+the solution in its state at the point of failure, so need to
+be used with transactions.  Unlike Kempe time moves, Kempe
+resource assignments do not consult the matching in any way.
+They do not attempt to preserve the resource assignment invariant,
+leaving that to higher-level solvers.
+@PP
+An interesting question is whether simply assigning @C { r } to
+@C { task } would be sufficient for an ejection chain algorithm;
+the necessary deassignments would be left to the next step in the
+chain.  The problem is that the assignment of @C { r } can
+introduce several different kinds of defects:  demand defects,
+avoid clashes defects, and workload limit defects.  There seems
+to be no way to make it clear to an algorithm that all of these
+might be removable by a single deassignment.  And then, on the
+other hand, we have the same phenomenon that we saw with Kempe
+time moves:  the only way to remove the new clashes is to do
+these deassignments.  Since there are no alternative repairs,
+it is overkill to use an ejection chain to do them; it is
+better to make them part of the original assignment operation.
+@End @Section
+
+@Section
+    @Title { Repairing resource assignments }
+    @Tag { resource_solvers.repair }
+@Begin
+@LP
+This section presents several solvers which repair resource assignments.
+@BeginSubSections
+
+@SubSection
+    @Title { An ejection chain repair algorithm }
+    @Tag { resource_solvers.repair.ejection }
+@Begin
+@LP
+Function
+@ID @C {
+void KheEjectionChainRepairResources(KHE_TASKING tasking,
+  bool preserve_invariant);
+}
+uses ejection chains to reduce the cost of the solution by
+changing the assignments of the tasks of @C { tasking }.  Kempe
+resource assignments (Section {@NumberOf resource_solvers.kempe})
+are the main operations used to alter the assignments.  If
+@C { preserve_invariant } is @C { true }, only changes which preserve
+the resource assignment invariant are made.  For a detailed description,
+consult Section {@NumberOf ejection.resource_repair}.
+@End @SubSection
+
+@SubSection
+    @Title { A two-colouring algorithm for repairing split assignments }
+    @Tag { resource_solvers.repair.colour }
+@Begin
+@LP
+Function
+@ID @C {
+bool KheTwoColourReassign(KHE_SOLN soln, KHE_RESOURCE r1,
+  KHE_RESOURCE r2, bool preserve_invariant);
+}
+tries to improve @C { soln } by reassigning the tasks assigned to
+@C { r1 } and @C { r2 }.  It is an example of a kind of algorithm
+which has become known in recent years as very large-scale
+neighbourhood (VLSN) search @Cite { $ahuja2002, $meyers2007 }.
+If @C { preserve_invariant } is @C { true }, only changes that
+preserve the resource assignment invariant are permitted.
+@PP
+@C { KheTwoColourReassign } understands that two tasks should be assigned
+the same resource when one task is assigned to the other, or they share
+an avoid split assignments monitor whose constraint has non-zero weight;
+and it understands that two tasks which overlap in time should be
+assigned different resources.  If it can find a reassignment of the
+tasks assigned to @C { r1 } and @C { r2 } which satisfies these
+conditions and produces a lower solution cost, it makes it and
+returns @C { true }; otherwise it leaves the solution as it found it
+and returns @C { false }.  Either way, it does not change assignments
+of non-leader tasks.
+@PP
+The algorithm works by two-colouring a clash graph.  Take all the
+tasks initially assigned to @C { r1 } and @C { r2 }.  Say that two
+of these tasks are related when they share either a leader task or an
+avoid split assignments monitor whose constraint has non-zero weight.
+The equivalence classes of the reflexive transitive closure of this
+relation are the nodes of the graph.  Two nodes are connected by an
+edge when a task of one node overlaps in time with a task of the other
+node.  Each node has to be assigned either @C { r1 } or @C { r2 }.
+@PP
+If the graph is connected there are at most two ways to two-colour it,
+since once a colour is assigned to one node, all its neighbours must
+be assigned the other colour, all their neighbours must be assigned
+the first colour, and so on.  In general, each connected component can
+be coloured independently of the others, giving a number of colourings
+equal to 2 to the number of components.  In practice, for teacher
+assignment at least, this is a modest number, especially when some
+components can only be coloured in one way owing to resource domain
+restrictions, and for others it does not matter which colouring is
+used, because either way the two resources are occupied at the same
+times and incur the same workload.  So it is possible to try all
+colourings and choose the best.  For safety, the algorithm tests
+at most 256 colourings.
+@PP
+Any component containing a 3-cycle cannot be coloured with two
+colours.  It does not participate in the algorithm; its original
+assignments remain untouched.   A 3-cycle can occur even though
+the original tasks were all assigned to two resources, because
+the original assignments may involve split assignments and clashes.
+@PP
+This algorithm could be used as a repair method in an ejection
+chain algorithm.  If that were done, the two-colouring solution
+could leave one defect to be repaired recursively by the ejection
+chain.  This extension is somewhat mind-boggling (most ejection
+chain repair methods are simple assignments and swaps) and has
+not been attempted.
+@PP
+Any two resources may be passed to @C { KheTwoColourReassign }.  It
+makes sense, however, to pass resources with similar capabilities
+whose timetables are defective in some way.  In particular, if
+there is a split assignment with some tasks assigned to @C { r1 }
+and some to @C { r2 }, it is reasonable to pass @C { r1 } and
+@C { r2 } to @C { KheTwoColourReassign } to try to eliminate
+the split assignment.  Function
+@ID @C {
+void KheTwoColourRepairSplitAssignments(KHE_TASKING tasking,
+  bool preserve_invariant);
+}
+repairs split assignments in the tasks of @C { tasking }.  For each
+split assignment (each avoid split assignments defect), it calls
+@C { KheTwoColourReassign } for each pair of distinct resources
+involved.  On one typical run, when this function was called after
+an invariant-preserving ejection chain call, the final solution
+had two fewer split assignments.  This is not a large number, but
+at the end of a solve every improvement is valuable.  Total run
+time actually decreased slightly, presumably because later stages
+had fewer defects to repair.
+@End @SubSection
+
+@EndSubSections
+@End @Section
+
+@Section
+    @Title { Putting it all together }
+    @Tag { resource_solvers.all_together }
+@Begin
+@LP
+Three decisions face the designer of a resource solver.  Should the
+solver work with split assignments, or with unsplit ones?  Should it
+preserve the resource assignment invariant, or not?  Should it respect
+the domains of tasks, or not?  Fortunately, KHE makes it easy to write
+solvers that can be used with any combination of these three decisions,
+as follows.
+@PP
+Get unsplit assignments by building a task tree with avoid split
+assignments jobs.  Allow split assignments by calling
+@C { KheTaskingAllowSplitAssignments }
+(Section {@NumberOf resource_solvers.task_tree.reorganization}).
+Either way, the solver assigns resources to leader tasks, without
+knowing or caring if they have followers.
+@PP
+By enclosing each attempt to change the solution in
+@C { KheInvariantTransactionBegin } and @C { KheInvariantTransactionEnd }
+(Section {@NumberOf resource_solvers.invt}), a solver can preserve the
+resource assignment invariant, or not, depending on the value of a
+Boolean parameter.  Most of the pre-packaged solvers lack this parameter;
+they always preserve the invariant.
+@PP
+If domains are to be respected, do nothing; if not, then before
+running the solver, call @C { KheTaskingEnlargeDomains }
+(Section {@NumberOf resource_solvers.task_tree.reorganization })
+to enlarge them to the full set of resources.
+@PP
+Function
+@ID @C {
+void KheTaskingAssignResources(KHE_TASKING tasking);
+}
+packages this chapter's ideas into one solver which assigns resources
+to the tasks of @C { tasking }.  It takes a `progressive corruption'
+approach to the decisions just described:  it is spotless at first,
+but it slides into the gutter towards the end.  Each of the following
+paragraphs presents one phase of its implementation; together, these
+phases make up the entire algorithm.
+@PP
+The initial task tree is assumed to reflect hard prefer resources
+constraints but not soft ones, so the first phase modifies domains
+and assignments to take account of soft constraints:
+@ID @C {
+tjt = KHE_TASK_JOB_HARD_PRC | KHE_TASK_JOB_SOFT_PRC |
+      KHE_TASK_JOB_HARD_ASAC | KHE_TASK_JOB_SOFT_ASAC;
+KheTaskingMakeTaskTree(tasking, tjt, true, true, true);
+}
+This could probably be done in a more nuanced way.
+@PP
+The next phase assigns resources to the unassigned leader tasks of
+@C { tasking }, using resource packing if there are avoid split
+assignments constraints, and the simpler most constrained first
+algorithm otherwise.  This is followed by an ejection chain repair
+algorithm:
+@ID @C {
+rt = KheTaskingResourceType(tasking);
+if( rt == NULL || KheResourceTypeAvoidSplitAssignmentsCount(rt) > 0 )
+  KheResourcePackAssignResources(tasking);
+else
+  KheMostConstrainedFirstAssignResources(tasking);
+KheEjectionChainRepairResources(tasking, true);
+}
+So far, there are no split assignments, the resource assignment
+invariant is preserved, and domains are respected.  The great
+majority of the tasks, probably, have been assigned resources.
+@PP
+Now comes the slide into the gutter.  @C { KheFindSplitResourceAssignments }
+is called to construct split assignments.  Then
+@C { KheTaskingAllowSplitAssignments } is called to permit all tasks,
+assigned or not, to be split, and the same ejection chain repair
+algorithm is run again, followed by two-colouring repair:
+@ID @C {
+KheFindSplitResourceAssignments(tasking);
+KheTaskingAllowSplitAssignments(tasking, false);
+KheEjectionChainRepairResources(tasking, true);
+KheTwoColourRepairSplitAssignments(tasking, true);
+}
+Since there are split assignments now, the ejection chain algorithm 
+will try to unsplit them (it has always had an augment function for
+this, but there have been no split assignments to trigger it until
+now).  This rarely succeeds, but it also tries, with more success, to
+assign unassigned tasks, even at the cost of splitting assignments
+that were previously unsplit.
+@PP
+The final phase is very corrupt indeed:
+@ID @C {
+KheEjectionChainRepairResources(tasking, false);
+KheTaskingEnlargeDomains(tasking, true);
+KheEjectionChainRepairResources(tasking, false);
+}
+The same ejection chain algorithm is run yet again, but this time
+without preserving the resource assignment invariant.  Then the
+domains of the remaining unassigned tasks are enlarged to the full
+resource type using @C { KheTaskingEnlargeDomains }, and the
+ejection chain algorithm is run for the fourth and last time.
+Enlarging domains makes sense only at the very end, and will have
+an effect only if any room or any teacher is better than none.
+@End @Section
+
+@EndSections
+@End @Chapter

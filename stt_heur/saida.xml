@@ -1,0 +1,4157 @@
+  <SolutionGroup Id="GOAL team Fri May 11 19:09:08 2012
+">
+    <MetaData>
+      <Contributor>GOAL team: Fonseca, G.H.G., Brito, S., Toffolo, T. and Santos, H.G.</Contributor>
+      <Date>Fri May 11 19:09:08 2012
+</Date>
+      <Description>Hibrid heuristic and IP methods</Description>
+      <Remarks>Under development (Random seed = 1000)</Remarks>
+    </MetaData>
+    <Solution Reference="TES99_XHSTT2011">
+      <Events>
+        <Event Reference="x08ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x08ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x08ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x08ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x08ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x08ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x08ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x08ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x08ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x08MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x08MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x08MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x08MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x08SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x08SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x08SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x08SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x08SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x08SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x08SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x08SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x08SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x08SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x08SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x08SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x08SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x08SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x08SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x08HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x08HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x08HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x08HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x08HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x08HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x08HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HEB2_1">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HEB2_2">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HEB2_3">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08HEB2_4">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08FRE_1">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08FRE_2">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08FRE_3">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08FRE_4">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08DT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x08DT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x08DT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x08D_T1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher03"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08D_T1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08D_T1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08DT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x08DT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x08DT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x08D_T2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08D_T2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08D_T2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher03"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x0ARTMUS1_MUSART_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x0ARTMUS1_MUSART_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x0ARTMUS1_MUSART_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x08ARTMUS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x08ARTMUS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x08ARTMUS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x08MUSART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x08MUSART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x08MUSART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x08PDH1_1">
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x08PDH1_1_1">
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x08PDH2_1">
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x08PDH2_1_1">
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x08JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x08JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x08JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x08JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x08JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x08JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x09ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x09ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x09ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x09ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x09ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x09ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x09ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x09ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x09ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x09ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x09ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x09ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x09MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x09MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x09MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x09MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x09SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x09SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x09SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x09SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x09SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x09SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x09SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x09SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x09SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x09SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x09SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x09SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x09SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x09SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x09SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x09HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x09HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x09HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x09HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x09HIS1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x09HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x09HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x09HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x09HIS2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x09HIS3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x09HIS3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x09HIS3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x09HIS3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09HIS3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x09_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x09_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x091CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x091CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x091CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x091D_T_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x091D_T_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x091D_T_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x091DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x091DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x091DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x091ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x091ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x091ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x09_2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x09_2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x09_2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x092COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092GEO_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092GEO_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092GEO_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x092ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x092ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x092ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x092CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x092CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x092CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x093COM_1">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x093COM_2">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x093COM_3">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x093HEB_1">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x093HEB_2">
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x093HEB_3">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x09JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x09JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x09JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x09JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x09JST3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x09JST3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09JST3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09PDH1_1">
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x09PDH1_1_1">
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09PDH2_1">
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x09PDH2_1_1">
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x09PDH3_1">
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x09PDH3_1_1">
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x07ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x07ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x07ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x07ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher05"><Role>0</Role></Resource>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x07ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x07ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x07ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x07ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x07ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x07ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x07ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x07ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07ENG3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x07MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x07MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x07MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x07MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x07SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x07SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x07SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x07SCI1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x07SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+        </Event>
+        <Event Reference="x07SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x07SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x07SCI2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed6"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher03"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x07SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x07SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x07SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x07SCI3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07SCI3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="x07SCI1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x07HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x07HSIE1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="Other17"><Role>0</Role></Resource>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="Other17"><Role>0</Role></Resource>
+            <Resource Reference="D1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x07HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x07HSIE2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="Other17"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="x09HIS1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x07HSIE3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x07HSIE3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x07HSIE3G_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3G_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3G_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="D1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3H_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3H_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HSIE3H_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x07HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x07HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x07HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x07HEB1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07HEB3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07DT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07DT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x07D_T1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07D_T1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07DT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x07DT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x07D_T2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07D_T2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher03"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07DT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x07DT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x07D_T3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher03"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07D_T3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="x07DT1Teacher03"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x0ART1_MUS1A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x0ART1_MUS1A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x0ART1_MUS1A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x07ART1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x07ART1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x07ART1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x07MUS1A_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x07MUS1A_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x07MUS1A_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x07MUS1B_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x07MUS1B_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x07MUS1B_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x0ART2_MUS2A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x0ART2_MUS2A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x0ART2_MUS2A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x07ART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x07ART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x07ART2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x07MUS2A_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x07MUS2A_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x07MUS2A_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x07MUS2B_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x07MUS2B_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x07MUS2B_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x0ART3_MUS3A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x0ART3_MUS3A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x0ART3_MUS3A_MUS_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07ART3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07ART3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x07ART3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07MUS3A_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07MUS3A_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x07MUS3A_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07MUS3B_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07MUS3B_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x07MUS3B_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x07DTC1_1">
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x07DTC1_1_1">
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x07DTC2_1">
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07DTC2_1_1">
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x07DTC3_1">
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x07DTC3_1_1">
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x07PDH1_1">
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x07PDH1_1_1">
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07PDH2_1">
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x07PDH2_1_1">
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07PDH3_1">
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x07PDH3_1_1">
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x07JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x07JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x07JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x07JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher02"><Role>0</Role></Resource>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x07JST3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x07JST3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x07JST3_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x121ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x121ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x121ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x121ENGR_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGR_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGR_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGR_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGG_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGG_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGG_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGG_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGC_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGC_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGC_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x121ENGC_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x113MAT212_113BI_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113MAT212_113BI_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113MAT212_113BI_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113MAT212_113BI_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x113MAT212_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113MAT212_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113MAT212_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113MAT212_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x113BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x122MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x122MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x113SFL_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113SFL_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113SFL_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113SFL_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x113CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x113LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x113LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue3"/>
+        </Event>
+        <Event Reference="x113LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x113LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x12_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x12_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x12_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x12_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x123PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x123PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x123PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x123PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x123BUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123BUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123BUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123BUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x123MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x12_4_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x12_4_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x12_4_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x12_4_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x124CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x124CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x124CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x124CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x124LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124LST_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x124AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125BIO_114CHE_1_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x125BIO_114CHE_1_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x125BIO_114CHE_1_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x125BIO_114CHE_1_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x125BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125BIO_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x114CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x114CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x114CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x114CHE_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x125ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="D1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="D1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125HEBR_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125HEBR_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125HEBR_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x125HEBR_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x114ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+        </Event>
+        <Event Reference="x114ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x114ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x114ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+        </Event>
+        <Event Reference="x114MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon5"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x114MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x114MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x114MHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri3"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127BMAT4_1">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127BMAT4_2">
+          <Resources>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117BHEB2G_1">
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117BHEB2G_2">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x12_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x12_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x12_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x12_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x126CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x126CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x126CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x126CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x126PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x126PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x126PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x126PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x126ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x126ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x126ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x126ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x126DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x126DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x126DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x126DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x127AGST_117AMAT_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x127AGST_117AMAT_et_al_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x127AGST_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127AGST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="B24"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117AMAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x117AMAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x127ASTR_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127ASTR_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127AMAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x127AMAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117AGST_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117AGST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117ASTR_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x117ASTR_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x10ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x10ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x10ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x10ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B20"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x10ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x10ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+        </Event>
+        <Event Reference="x10ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x10ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu5"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10ENG2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="x10ENG1Teacher04"><Role>0</Role></Resource>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x10MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x10MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x10MAT_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+        </Event>
+        <Event Reference="x10MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="B14"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri5"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x10SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x10SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x10SCI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x10SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x10SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x10SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x10SCI1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x10SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x10SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x10SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x10SCI2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x10SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x10SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x10SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x10SCI3_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri6"/>
+        </Event>
+        <Event Reference="x10HIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x10HIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x10HIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x10HIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x10HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="L1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10HIS2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x10_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x10_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x101COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="B31"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101COM_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+          <Resources>
+            <Resource Reference="B32"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101HEB_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x101DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon4"/>
+        </Event>
+        <Event Reference="x101DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue6"/>
+        </Event>
+        <Event Reference="x101DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu4"/>
+        </Event>
+        <Event Reference="x102GEO_1">
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x102GEO_2">
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x102GEO_3">
+          <Resources>
+            <Resource Reference="B12"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x10_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x10_3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x103ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x103ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x103ART_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x103CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x103CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x103CST_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x103MUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x103MUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x103MUS_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu3"/>
+        </Event>
+        <Event Reference="x10JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+        </Event>
+        <Event Reference="x10JST1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x10JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed1"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10JST1_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+        </Event>
+        <Event Reference="x10JST2_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x10JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed4"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B11"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10JST2_1_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="x08JST1Teacher01"><Role>0</Role></Resource>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10PDH1_1">
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x10PDH1_1_1">
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="B13"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x10PDH2_1">
+          <Time Reference="Fri2"/>
+        </Event>
+        <Event Reference="x10PDH2_1_1">
+          <Time Reference="Fri2"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+        </Event>
+        <Event Reference="x111ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+        </Event>
+        <Event Reference="x111ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+        </Event>
+        <Event Reference="x111ENG_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+        </Event>
+        <Event Reference="x111ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG1_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="L2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon2"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue5"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed3"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x111ENG3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu6"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112M_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+        </Event>
+        <Event Reference="x112M_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+        </Event>
+        <Event Reference="x112M_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+        </Event>
+        <Event Reference="x112M_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+        </Event>
+        <Event Reference="x112MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B30"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT3_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B34"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="D1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MAT2_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="B43"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon3"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon6"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed2"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x112MIS_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu1"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x11_5_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x11_5_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x11_5_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x11_5_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x115PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x115PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x115PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x115PHY_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x115DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+        </Event>
+        <Event Reference="x115DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+        </Event>
+        <Event Reference="x115DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+        </Event>
+        <Event Reference="x115DRA_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+        </Event>
+        <Event Reference="x115PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Mon1"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x115PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue2"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x115PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Thu2"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x115PDH_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri1"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x11_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x11_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x11_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x11_6_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+        <Event Reference="x116ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116ECO_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="X1"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116BST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116BST_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116BST_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116BST_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="X2"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+          <Resources>
+            <Resource Reference="X3"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+          <Resources>
+            <Resource Reference="X3"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+          <Resources>
+            <Resource Reference="X3"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116AHI_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+          <Resources>
+            <Resource Reference="X3"><Role>1</Role></Resource>
+          </Resources>
+        </Event>
+        <Event Reference="x116HOS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue1"/>
+        </Event>
+        <Event Reference="x116HOS_1">
+          <Duration>1</Duration>
+          <Time Reference="Tue4"/>
+        </Event>
+        <Event Reference="x116HOS_1">
+          <Duration>1</Duration>
+          <Time Reference="Wed5"/>
+        </Event>
+        <Event Reference="x116HOS_1">
+          <Duration>1</Duration>
+          <Time Reference="Fri4"/>
+        </Event>
+      </Events>
+      <Report>
+        <InfeasibilityValue>9</InfeasibilityValue>
+        <ObjectiveValue>187</ObjectiveValue>
+        <Resources>
+          <Resource Reference="x09HIS1Teacher01">
+            <Constraint Reference="LimitBusyTimesConstraint_58">
+              <Cost>2</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="x09HIS1Teacher02">
+            <Constraint Reference="LimitBusyTimesConstraint_58">
+              <Cost>2</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="Other06">
+            <Constraint Reference="AvoidClashesConstraint">
+              <Cost>1</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="Other07">
+            <Constraint Reference="AvoidUnavailableTimesConstraint_Other07">
+              <Cost>2</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="Other16">
+            <Constraint Reference="LimitBusyTimesConstraint_58">
+              <Cost>2</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="Other19">
+            <Constraint Reference="AvoidClashesConstraint">
+              <Cost>1</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="B31">
+            <Constraint Reference="AvoidClashesConstraint">
+              <Cost>3</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="L4">
+            <Constraint Reference="AvoidClashesConstraint">
+              <Cost>1</Cost>
+            </Constraint>
+          </Resource>
+          <Resource Reference="Yr7_1">
+            <Constraint Reference="AvoidClashesConstraint">
+              <Cost>1</Cost>
+            </Constraint>
+          </Resource>
+        </Resources>
+        <EventGroups>
+          <EventGroup Reference="x08ENG2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x08D_T1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x08D_T2">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x09ENG2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x09ENG3_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>20</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x09HIS1_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x09HIS2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x09HIS3_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>20</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07ENG2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07ENG3_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07SCI2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07HSIE1_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07HSIE2_1">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x07D_T2">
+            <Constraint Reference="AvoidSplitAssignmentsConstraint_Soft_0">
+              <Cost>10</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x12_3">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x123PHY">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x123BUS">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x123MHI">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x12_4">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x124CHE">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x124LST">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x124AHI">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x10_3">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x103ART">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x103CST">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x103MUS">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x112M">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x112MAT3">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x112MAT2">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x112MIS">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x11_6">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x116ECO">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x116BST">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x116AHI">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+          <EventGroup Reference="x116HOS">
+            <Constraint Reference="SpreadEventsConstraint_1">
+              <Cost>1</Cost>
+            </Constraint>
+          </EventGroup>
+        </EventGroups>
+      </Report>
+    </Solution>
+  </SolutionGroup>

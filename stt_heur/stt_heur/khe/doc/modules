@@ -1,0 +1,1061 @@
+@Appendix
+    @Title { Modules Packaged with KHE }
+    @Tag { modules }
+@Begin
+This Appendix documents several modules packaged with KHE and used
+by it behind the scenes.  By including their header files the user
+may also use these modules.
+@BeginSubAppendices
+
+@SubAppendix
+    @Title { The M module }
+    @Tag { modules.m }
+@Begin
+@LP
+M is a C module consisting of header file @C { m.h } and implementation
+file @C { m.c }.  These are stored and compiled with KHE, but they can
+be used separately.  M offers macros and functions for memory allocation,
+assertions, and variable-length typed generic arrays and symbol tables.
+The latter come in two forms, one with keys of type @C { char * }, the
+other with keys of type @C { wchar_t * }.
+@PP
+M itself contains no calls to synchronization operations, but it has
+been written with multi-threading in mind, and it is thread-safe in
+the following sense.  It is safe for query operations (retrievals and
+traversals on an unchanging array or symbol table) to occur at the
+same time on the same object within different threads.   It is not
+safe for update operations (insertions and deletions) to occur at
+the same time as either query or update operations within different
+threads.  This is the most that can be hoped for without explicit
+synchronization.
+@PP
+KHE uses M extensively behind the scenes.  It is useful, too, when
+writing helper functions and solvers, which is why it is documented
+here.  To use M, simply include @C { m.h }.  Including @C { khe.h }
+does not automatically include @C { m.h } as well.
+@BeginSubSubAppendices
+
+@SubSubAppendix
+    @Title { Memory allocation }
+@Begin
+@LP
+M offers macro
+@ID @C { MMake(x); }
+which assumes that @C { x } is a variable of pointer type, and
+initializes it to point to some new memory of the appropriate size.
+For example,
+@ID @C {
+struct { int x; int y } pt;
+MMake(pt);
+}
+sets @C { pt } to point to two new words of memory.  Conversely, for
+any pointer @C { x } set by calling @C { MMake(x) } one may call
+@ID @C { MFree(x); }
+to free the memory pointed to by @C { x }.  The two macros are
+simple wrappers for the @C { malloc() } and @C { free() } system
+calls; @C { MMake } is more convenient than @C { malloc() }, since
+it works out the size for you, but @C { MFree } is identical with
+@C { free() } and is included only for completeness.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { Assertions }
+@Begin
+@LP
+M also offers a useful assert function:
+@ID @C {
+void MAssert(bool cond, char *fmt, ...);
+}
+If @C { cond } is @C { true }, this does nothing; but if it is
+@C { false }, it uses @C { fprintf } to print a message made
+from @C { fmt } and the following parameters onto @C { stderr },
+then aborts.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { Variable-length arrays }
+@Begin
+@LP
+M also offers variable-length arrays.  These are not just arrays of
+void pointers.  Instead, like C's native arrays, they are strongly
+typed:  the C compiler will report an error if there is a type
+mismatch.  Each array may have elements of any one type, and that
+type may have any width.
+@PP
+The type of a variable-length array must be declared using a
+@C { typedef }.  For example, the following declarations already
+appear within @C { m.h }:
+@ID @C {
+typedef MARRAY(bool)		ARRAY_BOOL;
+typedef MARRAY(char)		ARRAY_CHAR;
+typedef MARRAY(wchar_t)		ARRAY_WCHAR;
+typedef MARRAY(short)		ARRAY_SHORT;
+typedef MARRAY(int)		ARRAY_INT;
+typedef MARRAY(int64_t)		ARRAY_INT64;
+typedef MARRAY(void *)		ARRAY_VOIDP;
+typedef MARRAY(char *)		ARRAY_STRING;
+typedef MARRAY(wchar_t *)	ARRAY_WSTRING;
+}
+To gain access to @C { wchar_t } and @C { int64_t }, @C { m.h }
+includes standard header files @C { <wchar.h> } and @C { <stdint.h> }.
+Use of @C { long } just leads to trouble, in the author's experience,
+since its width varies between 32-bit and 64-bit platforms, so
+@C { int64_t }, a standard 64-bit signed integral type, appears here
+instead.  Create your own array type by placing any type at all
+between the parentheses.
+@PP
+A variable of any of these types is a record (not a pointer to a record)
+holding three fields:  the current length, the current capacity, and a
+typed pointer to memory holding the elements.  If one array is assigned
+to another, the two arrays will have independent length and capacity
+fields, yet share their content.  This is only safe when the original
+is not used afterwards, or the array remains constant.  It was done
+this way because, in the author's experience, an extensible array is
+best kept private to one class or one function body; and in that case,
+there is no problem in having its record lie directly in the class
+object or on the call stack, rather than in separately allocated
+memory at the end of a pointer, and it is more efficient that way.
+@PP
+Although the record fields can be accessed directly by the user, they
+should not be.  Instead, only the following operations (which are
+generic macros for the most part) should be called.  The notation
+@C { ARRAY_X } stands for a variable-length array whose elements
+have type @C { X }.
+@ID @C {
+void MArrayInit(ARRAY_X a);
+}
+Initialize @C { a } to the empty array.  This must be called before any
+other operation on @C { a }.  Macro
+@ID @C {
+void MArrayFree(ARRAY_X a)
+}
+frees the memory used to hold the elements of @C { a }.  It does not
+free @C { a } itself; @C { a } is not a pointer.
+@ID @C {
+int MArraySize(ARRAY_X a);
+}
+Return the number of elements currently stored in @C { a }.  An integer
+@C { i } is a legal index of @C { a } if @C { 0 <= i < MArraySize(a) },
+as usual in C.  Array bounds are not checked by any M operation.
+@ID @C {
+void MArrayClear(ARRAY_X a);
+}
+Clear the array, that is, set its current number of elements to 0.
+@ID @C {
+void MArrayAddLast(ARRAY_X a, X x);
+void MArrayInsert(ARRAY_X a, int i, X x);
+void MArrayAddFirst(ARRAY_X a, X x);
+}
+Add @C { x } to the end of @C { a }, insert it so that its index
+afterwards is @C { i }, or insert it at the front, shifting all
+higher elements up one place to make room.  The array will be
+resized if necessary.
+@ID @C {
+X MArrayGet(ARRAY_X a, int i);
+X MArrayFirst(a);
+X MArrayLast(a);
+}
+Return the @C { i }'th element of @C { a }, or the first, or the last.
+@ID @C {
+void MArrayPut(ARRAY_X a, int i, X x);
+void MArrayInc(ARRAY_X a, int i);
+void MArrayDec(ARRAY_X a, int i);
+}
+Replace the existing @C { i }'th element of @C { a } with @C { x },
+and increment and decrement the @C { i }'th element of @C { a }.
+@C { MArrayInc } and @C { MArrayDec } apply only to arrays of
+integral types.
+@ID @C {
+void MArrayFill(ARRAY_X a, int len, X x);
+}
+If the length of @C { a } is less than @C { len }, increase it to
+@C { len } by repeatedly adding the value @C { x } to the end;
+otherwise do nothing.  There is no way, using this or any other M
+operation, to cause any legal index of @C { a } to contain an
+undefined value.  @C { MArrayFill } is a macro that evaluates
+@C { x } repeatedly.
+@ID @C {
+X MArrayRemove(ARRAY_X a, int i);
+X MArrayRemoveFirst(ARRAY_X a);
+X MArrayRemoveLast(ARRAY_X a);
+}
+Remove the element at index @C { i }, or the first element, or the
+last element, shifting any higher elements down one place to close
+up the gap, and returning the removed element as result.
+@ID @C {
+void MArrayDropLast(ARRAY_X a);
+void MArrayDropFromEnd(ARRAY_X a, int n);
+}
+Remove the last, or the last @C { n }, elements of @C { a }.
+@ID @C {
+X MArrayRemoveAndPlug(ARRAY_X a, int i);
+X MArrayRemoveFirstAndPlug(ARRAY_X a);
+}
+Remove the element at index @C { i }, or the first element, but plug
+the gap quickly by moving the last element into it instead of shifting;
+or if the removed element is the last element, just remove it.  Return
+the original last element, possibly but not usually the deleted element.
+@ID @C {
+void MArrayAppend(ARRAY_X dest, ARRAY_X source, int i);
+}
+Append the elements of @C { source } to the end of @C { dest },
+leaving @C { source } unchanged.  Parameter @C { i } is a
+variable used as an external cursor when scanning @C { source }.
+@ID @C {
+void MArraySwap(ARRAY_X a, int i, int j, X tmp);
+}
+Swap the elements of @C { a } at positions @C { i } and @C { j }.
+Parameter @C { tmp } is a variable used to hold an element
+temporarily while swapping.
+@ID @C {
+void MArrayWholeSwap(ARRAY_X a, ARRAY_X b, ARRAY_X tmp);
+}
+Swap two whole arrays, that is, swap their structs.
+@ID @C {
+void MArraySort(ARRAY_X a, int(*compar)(const void *, const void *));
+}
+Sort @C { a } by means of a call to @C { qsort }, using @C { compar }
+as the comparison function.
+@ID { 0.96 1.0 } @Scale @C {
+void MArraySortUnique(ARRAY_X a, int(*compar)(const void *, const void *));
+}
+Similar to @C { MArraySort }, except that after sorting, elements are
+removed until no two adjacent elements return 0 when compared using
+@C { compar }.  If this is done purely for uniqueifying, it is common
+to implement @C { compar } as a mere subtraction of two pointers.
+However, on a 64-bit architecture this yields a 64-bit integer, and
+merely returning this cast to @C { int }, the return type of @C { compar },
+does not work.  Use a conditional expression returning @C { -1 }, @C { 0 },
+or @C { 1 } instead.
+@ID @C {
+bool MArrayContains(ARRAY_X a, X x, int *pos);
+}
+If @C { a } contains @C { x }, return @C { true } and set @C { *pos }
+to the first occurrence of @C { x } within @C { a }; otherwise return
+@C { false }, leaving @C { *pos } unchanged.  The implementation
+uses @C { memcmp } for the individual comparisons, ensuring that
+elements of any width are handled correctly.
+@ID @C {
+MArrayForEach(ARRAY_X a, X *x, int *i)
+MArrayForEachReverse(ARRAY_X a, X *x, int *i)
+}
+These macros are iterators which iterate over the elements of @C { a },
+in forward or reverse order.  During each iteration, @C { *x } is one
+element of @C { a } and @C { *i } is the index of @C { *x } in @C { a }.
+For example,
+@ID @C {
+MArrayForEach(strings, &str, &i)
+  fprintf(stdout, "string %d: %s\n", i, str);
+}
+prints the elements of array @C { strings }.  The use of @C { & }
+could be avoided, since @C { MArrayForEach } is a macro; it has
+been included as a reminder that @C { MArrayForEach } assigns
+values to @C { str } and @C { i } (it would have been necessary if
+@C { MArrayForEach } had been a function).  Both macros expand to
+@ID @C { for( ... ; ... ; ... ) }
+and may be used syntactically in any way that this construct may be.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { String factories }
+@Begin
+@LP
+One handy use for variable-length arrays is for building up strings
+piece by piece, similarly to @C { open_memstream } from POSIX-2008.
+The growing string is held in a variable-length array called a
+@I { string factory }, added to as appropriate, and retrieved
+from the factory at the end.
+@PP
+M's string factories come in two forms, one with elements of
+type @C { char } called @C { ARRAY_CHAR }, the other with
+elements of type @C { wchar_t } called @C { ARRAY_WCHAR }.
+Both these types appear in the list of pre-declared array
+types given above.  We'll start with @C { ARRAY_CHAR }.
+@ID @C {
+void MStringInit(ARRAY_CHAR ac);
+}
+Initialize string factory @C { ac }.  This is just a
+synonym for @C { MArrayInit }.  While the string is
+being constructed, the array just contains its elements,
+with no terminating @C { '\0' }.
+@ID @C {
+void MStringAddChar(ARRAY_CHAR ac, char ch);
+void MStringAddInt(ARRAY_CHAR ac, int i);
+void MStringAddString(ARRAY_CHAR ac, char *s);
+}
+Add @C { ch }, @C { i } (formatted into a character sequence),
+or @C { s } to the end of the growing string.
+@ID @C {
+void MStringPrintf(ARRAY_CHAR ac, size_t maxlen,
+  const char *format, ...);
+}
+Add the result of @C { snprintf(-, maxlen, format, ...) }
+to the end of the growing string.
+@ID @C {
+char *MStringVal(ARRAY_CHAR ac);
+}
+Add a @C { '\0' } to the end of @C { ac }, then return the string
+held in the factory.  After you are finished with the result of
+@C { MStringVal }, you can reclaim memory by calling
+@C { MArrayFree(ac) } as usual, or (equivalently, as it turns
+out) by calling @C { free } on the result of @C { MStringVal }.
+@PP
+There is also a separate function for copying a string into
+heap memory:
+@ID @C {
+char *MStringCopy(char *s);
+}
+This is equivalent to making a string factory, adding @C { s }
+to it, and returning the value; or if @C { s } is @C { NULL }
+it simply returns @C { NULL }.  A returned non-@C { NULL }
+value may be freed by a call to @C { free }.
+@PP
+Here are the @C { wchar_t } versions of these functions:
+@ID @C {
+void MWStringInit(ARRAY_WCHAR awc);
+void MWStringAddChar(ARRAY_WCHAR awc, wchar_t ch);
+void MWStringAddInt(ARRAY_WCHAR awc, int i);
+void MWStringAddString(ARRAY_WCHAR awc, wchar_t *s);
+void MWStringPrintf(ARRAY_WCHAR awc, size_t maxlen,
+  const wchar_t *format, ...);
+wchar_t *MWStringVal(ARRAY_WCHAR awc);
+wchar_t *MWStringCopy(wchar_t *s);
+}
+They work in exactly the same way, with just the obvious changes
+to names and types.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { Symbol tables }
+@Begin
+@LP
+A symbol table is a set of @I { entries }, each of which consists of
+two parts, a @I { key } which is a string, and a @I { value }.  In
+any one table the values must all have the same type, declared by the
+user (the C compiler checks this).  The declared type is arbitrary,
+and may have any width.  Each table may contain any number of entries.
+The basic operations are to insert an entry and to retrieve the value
+of an entry by giving its key.
+@PP
+As for arrays, and for the same reasons, M's symbol tables are
+records, not pointers to records.  The implementation uses a
+linear probing hash table which doubles in size when it reaches
+80% capacity.  This kind of hash table is essentially just an
+array (actually two arrays, one for keys, one for values).  At
+any moment, some of its elements contain entries, others do not.
+hash.table. @Index { Hash table }
+@PP
+The hardest part of implementing M was to find a way to resize the
+generic array of values without falling foul of the C language's
+strict aliasing rule, which states that pointers of different
+types should never point to overlapping memory.  My solution
+invokes the part of the rule that says that pointers of type
+@C { char * } are exempt from the rule, which is not a
+confidence-inspiring state of affairs.  If you find corrupted
+values in your symbol tables, try turning optimization off.  If
+that fixes the problem, then strict aliasing was the problem
+(please let me know).
+@PP
+M's symbol tables come in two forms, one with keys of type @C { char * }
+called @C { MTABLE }, the other with keys of type @C { wchar_t * }
+called @C { MWTABLE }.  (File @C { m.h } also defines types
+@C { MTABLE_U } and @C { MWTABLE_U }, but they are for use behind
+the scenes.  Do not use these names.)  @C { MTABLE } is documented
+here.  For wide character string tables, replace @C { MTABLE } with
+@C { MWTABLE }, @C { MTable } with @C { MWTable }, and @C { char * }
+with @C { wchar_t * } in what follows.
+@PP
+To define a symbol table type whose values have type @C { PERSON }, say,
+write this:
+mtable. @Index @C { MTABLE }
+@ID @C {
+typedef MTABLE(PERSON) TABLE_PERSON;
+}
+In the following definitions (most of which are implemented by macros),
+type @C { TABLE_X } stands for any type defined by a typedef like the
+one just given, and @C { X } stands for the type (@C { PERSON } or
+whatever) between the parentheses in that typedef.
+@ID @C {
+void MTableInit(MTABLE_X table);
+}
+Initialize @C { table } to a new table, currently empty.
+@ID @C {
+void MTableFree(MTABLE_X table);
+}
+Free @C { table } (that is, free its arrays of keys and values).
+@ID @C {
+void MTableInsert(MTABLE_X table, char *key, X value);
+}
+Insert a new entry with the given key and value into @C { table }.
+It is not an error if there is already an entry with the same key
+in @C { table }; in that case, the table simply stores both.
+@ID @C {
+bool MTableInsertUnique(MTABLE_X table, char *key, X value, X *other);
+}
+If there is no entry with the given key in @C { table }, insert an
+entry with the given key and value and return @C { true }.  Otherwise,
+change nothing, set @C { *other } to the value of an existing entry
+with this key, and return @C { false }.
+@ID @C {
+void MTableClear(MTABLE_T table);
+}
+Delete every entry from @C { table }.
+@ID @C {
+int MTableHash(wchar_t *key)
+}
+Return the hash code (before reduction modulo the table size) used when
+searching for @C { key }.
+@PP
+Retrieval comes in two forms.  The first is the `contains' form,
+which merely reports whether an entry with the given key is present:
+@ID @C {
+bool MTableContains(MTABLE_X table, char *key, int *pos);
+bool MTableContainsHashed(MTABLE_X table, int hash_code, char *key,
+  int *pos);
+bool MTableContainsNext(MTABLE_X table, int *pos);
+}
+@C { MTableContains } returns @C { true } if @C { table } contains an
+entry with the given key, setting @C { *pos } to its position in the
+table, or @C { false } if there is no such entry, in which case @C { *pos }
+is an empty position in the table.  @C { MTableContainsHashed } is the
+same, except that it assumes that @C { hash_code } is the hash code of
+@C { key } as returned by @C { MTableHash }; passing it saves time when
+searching for the same key in several tables.  @C { MTableContainsNext }
+assumes that @C { *pos } is a non-empty position of @C { table }; it
+searches the table beyond that point (wrapping around to the front if
+necessary) for an entry with the same key as the one at that point.
+Like @C { MTableContains }, it returns @C { true } or @C { false }
+depending on whether it found such an entry, and it changes
+@C { *pos } to its new position, or an empty position.
+@PP
+The second form of retrieval is the `retrieve' form.  It returns
+the value associated with the given key, as well as saying whether
+the key is present:
+@ID @C {
+bool MTableRetrieve(TABLE_X table, char *key, X *value, int *pos);
+bool MTableRetrieveHashed(TABLE_X table, int hash_code, char *key,
+  X *value, int *pos);
+bool MTableRetrieveNext(TABLE_X table, X *value, int *pos);
+}
+Apart from returning the value in @C { *value } when an entry
+is found, these functions are the same as the corresponding
+`contains' versions.
+@ID @C {
+void MTableDelete(MTABLE_X table, int pos);
+}
+Delete the entry of @C { table } at position @C { pos }.  Here
+@C { pos } must contain an entry; for example, it could be the
+position returned by a successful call to @C { MTableRetrieve }.
+@ID @C {
+void MTableForEachWithKey(MTABLE_X table, char *key, X *value,
+  int *pos);
+void MTableForEachWithKeyHashed(MTABLE_X table, int hash_code,
+  char *key, X *value, int *pos);
+}
+These are iterator macros which visit every entry with a given key.
+For example, to visit every person called @C { "fred" } in table
+@C { people }, the code is
+@ID @C {
+MTableForEachWithKey(people, "fred", &person, &pos)
+{
+   ... visit person ...
+}
+}
+On each iteration, this code sets @C { person } to a person with name
+@C { "fred" }, and @C { pos } to the position of that person in the
+table.  @C { MTableForEachWithKeyHashed } is the same except that the
+user supplies the hash code as well, as for @C { MTableRetrieveHashed }.
+@PP
+A similar iterator macro visits every entry of the table:
+@ID @C {
+void MTableForEach(MTABLE_X table, char **key, X *value, int *pos);
+}
+The entries will be visited in an essentially random order, as usual
+with hash tables.  For example, the following code will count the
+number of entries in @C { table }:
+@ID @C {
+count = 0;
+MTableForEach(table, &key, &value, &pos)
+  count++;
+}
+This number is rarely needed by applications so it is not
+maintained automatically.
+@PP
+Another fairly useless number is
+@ID @C { int MTableSize(MTABLE_X table); }
+which is the current size of the hash table array.  This will
+be somewhat larger than the current number of entries.  And here
+are a few final macros, of minor interest:
+@ID @C {
+bool MTableOccupiedPos(MTABLE_X table, int pos);
+char *MTableKey(MTABLE_X table, int pos);
+X MTableValue(MTABLE_X table, int pos);
+void MTableSetValue(MTABLE_X table, int pos, X value);
+}
+@C { MTableOccupiedPos } returns @C { true } when position @C { pos } of
+@C { table } contains an entry.  @C { MTableKey } and @C { MTableValue }
+return the key and value of the entry at position @C { pos }; they are
+undefined if there is no entry at @C { pos }.  @C { MTableSetValue }
+changes the value of the entry at position @C { pos }.  For example,
+assuming that the table contains at least one entry with key
+@C { "fred" }, the code
+@ID @C {
+MTableContains(table, "fred", &pos);
+MTableSetValue(table, pos, new_value);
+}
+changes the value of the first such entry to @C { new_value }.
+@End @SubSubAppendix
+
+@EndSubSubAppendices
+@End @SubAppendix
+
+@SubAppendix
+    @Title { Variable-length bitsets }
+    @Tag { modules.lset }
+@Begin
+@LP
+KHE comes with a C module called LSet for managing variable-length
+sets of smallish unsigned integers implemented as bit vectors.  The
+module consists of header file @C { khe_lset.h } and implementation
+file @C { khe_lset.c }.  These are stored and compiled with KHE, but
+they can also be used separately.  KHE uses LSet extensively behind
+the scenes (all its time groups, resource groups, and event groups
+are represented both as arrays of elements and LSets of element index
+numbers), and it is also occasionally useful when writing helper
+functions and solvers, which is why it is documented here.  To use
+LSet, simply include @C { khe_lset.h }.  Including @C { khe.h }
+does not automatically include @C { khe_lset.h } as well.
+@PP
+File @C { khe_lset.h } begins with these two type definitions:
+@ID @C {
+typedef struct lset_rec *LSET;
+typedef MARRAY(LSET) ARRAY_LSET;
+}
+The first defines the type of an LSet, and the second defines an
+array of LSets, as usual.
+@PP
+Internally, an LSet is represented by a pointer to a @C { struct }
+containing a length followed by the bit vector itself.  When an
+element needs to be added that would overflow the currently
+allocated memory, the whole LSet is freed and a new one is returned.
+This is not particularly convenient for the user of LSet but it
+is the most efficient way.
+@PP
+Functions
+@ID @C {
+LSET LSetNew(void);
+void LSetFree(LSET s);
+}
+create a new, empty LSet and free an LSet;
+@ID @C {
+LSET LSetCopy(LSET s);
+}
+creates a fresh new LSet with the same value as @C { s }.  Function
+@ID @C {
+void LSetShift(LSET s, LSET *res, unsigned int k,
+  unsigned int max_nonzero);
+}
+takes two existing LSets, @C { s } and @C { *res }, and replaces
+the current value of @C { *res } by @C { s } with @C { k } added
+to each of its elements, except that elements which would thereby
+have value greater than @C { max_nonzero } are omitted.  The old
+@C { *res } will be freed and a new one allocated if necessary.
+This arcane function is used behind the scenes to calculate shifted
+time domains.  Function
+@ID @C {
+void LSetClear(LSET s);
+}
+clears @C { s } back to the empty set, and
+@ID @C {
+void LSetInsert(LSET *s, unsigned int i);
+void LSetDelete(LSET s, unsigned int i);
+}
+insert element @C { i } (changing nothing if @C { i } is already
+present) and delete it (changing nothing if @C { i } is already
+absent).  The value of @C { i } is arbitrary but very large
+values are obviously undesirable, since the bit vectors then
+become very large.
+@ID @C {
+void LSetAssign(LSET *target, LSET source);
+}
+replaces the current value of @C { *target } with the
+value of @C { source }, reallocating @C { *target } if
+necessary.  The value is a copy, there is no sharing anywhere
+in the LSet module.
+@PP
+The next three functions implement the set operations of
+union, intersection, and difference, replacing their first
+parameter's value with the result of the operation:
+@ID @C {
+void LSetUnion(LSET *target, LSET source);
+void LSetIntersection(LSET target, LSET source);
+void LSetDifference(LSET target, LSET source);
+}
+The usual Boolean operations are available on LSets:
+@ID @C {
+bool LSetEmpty(LSET s);
+bool LSetEqual(LSET s1, LSET s2);
+bool LSetSubset(LSET s1, LSET s2);
+bool LSetDisjoint(LSET s1, LSET s2);
+bool LSetContains(LSET s, unsigned int i);
+}
+These return @C { true } when @C { s } is empty,
+when @C { s1 } and @C { s2 } are equal, when
+@C { s1 } is a subset of @C { s2 }, when
+@C { s1 } and @C { s2 } are disjoint, and when
+@C { s } contains @C { i }.  Functions
+@ID @C {
+unsigned int LSetMin(LSET s);
+unsigned int LSetMax(LSET s);
+}
+return the smallest and largest elements of @C { s } respectively,
+using an efficient table lookup on the first or last non-zero byte.
+Both functions abort if @C { s } is empty.  Function
+@ID @C {
+int LSetLexicalCmp(LSET s1, LSET s2);
+}
+returns a negative, zero, or positive result depending on whether
+@C { s1 } is lexicographically less than, equal to, or greater
+than @C { s2 }.  Function
+@ID @C {
+void LSetExpand(LSET s, ARRAY_SHORT *add_to)
+}
+assumes that @C { *add_to } is an initialized array, and adds
+the elements of @C { s } to the array in increasing order by
+repeated calls to @C { MArrayAddLast }.  Function
+@ID @C {
+char *LSetShow(LSET s);
+}
+returns a display of @C { s } in static memory (so it is not
+thread-safe, but it does keep four separate buffers, allowing
+it to be called several times in one line of debug output).
+Finally,
+@ID @C {
+void LSetTest(FILE *fp);
+}
+tests the module and prints its results onto file @C { fp }.
+@End @SubAppendix
+
+@SubAppendix
+    @Title { Priority queues }
+    @Tag { modules.priqueue }
+@Begin
+@LP
+When a solver needs to visit things in priority order, it is easiest
+to just put them in an array and sort them.  Occasionally, however,
+their priorities change as solving proceeds, and then, since resorting
+after every change is not efficient, a priority queue is needed.
+@PP
+KHE comes with a C priority queue module called PriQueue, consisting
+of header file @C { khe_priqueue.h } and implementation file
+@C { khe_priqueue.c }.  These are stored and compiled with KHE,
+but can also be used separately.  To use PriQueue, simply include
+@C { khe_priqueue.h }.  Including @C { khe.h } does not automatically
+include @C { khe_priqueue.h } as well.  The implementation uses a
+Floyd-Williams heap with back indexes.  Each operation takes
+@M { O(log(n)) } time at most.
+@PP
+File @C { khe_priqueue.h } begins with these type definitions:
+@ID @C {
+typedef struct khe_priqueue_rec *KHE_PRIQUEUE;
+
+typedef int64_t (*KHE_PRIQUEUE_KEY_FN)(void *entry);
+typedef int (*KHE_PRIQUEUE_INDEX_GET_FN)(void *entry);
+typedef void (*KHE_PRIQUEUE_INDEX_SET_FN)(void *entry, int index);
+}
+The first defines the type of a PriQueue as a pointer to a
+private record in the usual way.  The others define the types
+of callback functions stored within the PriQueue and called
+by it.
+@PP
+An @I entry is one element of a priority queue.  PriQueue is
+generic:  its entries are represented by void pointers and
+may have any type consistent with that.  Each entry has a
+@I { key }, which is its priority in the priority queue,
+and an @I { index }, which is used internally by PriQueue
+to point to its position in the priority queue.  A typical
+entry type would look like this:
+@ID @C {
+typedef struct my_entry_rec {
+  int64_t	key;			/* PriQueue key */
+  int		index;			/* PriQueue index */
+  ...
+} *MY_ENTRY;
+}
+where @C { ... } stands for other fields.  PriQueue needs
+to retrieve the key, and to retrieve and set the index,
+which is what the three callback functions are for.  Here
+they are for type @C { MY_ENTRY }:
+@IndentedList
+
+@LI @C {
+int64_t MyEntryKey(void *entry)
+{
+  return ((MY_ENTRY) entry)->key;
+}
+}
+
+@LI @C {
+int MyEntryIndex(void *entry)
+{
+  return ((MY_ENTRY) entry)->index;
+}
+}
+
+@LI @C {
+void MyEntrySetIndex(void *entry, int index)
+{
+  ((MY_ENTRY) entry)->index = index;
+}
+}
+
+@EndList
+PriQueue sets the value of an entry's index field to a positive
+integer during an insertion, and to zero during a deletion.
+Accordingly, the user should initialize it to zero, and then
+it can be used to determine whether the entry is currently
+in a priority queue or not.
+@PP
+To create a new PriQueue, call
+@ID @C {
+KHE_PRIQUEUE KhePriQueueMake(KHE_PRIQUEUE_KEY_FN key,
+  KHE_PRIQUEUE_INDEX_GET_FN index_get,
+  KHE_PRIQUEUE_INDEX_SET_FN index_set);
+}
+For the example above, the call would be
+@ID @C {
+KhePriQueueMake(&MyEntryKey, &MyEntryIndex, &MyEntrySetIndex);
+}
+Initially the queue is empty.  To delete a priority queue when
+it is no longer needed, call
+@ID @C {
+void KhePriQueueDelete(KHE_PRIQUEUE p);
+}
+To test whether a priority queue is empty or not, call
+@ID @C {
+bool KhePriQueueEmpty(KHE_PRIQUEUE p);
+}
+To insert an entry, call
+@ID @C {
+void KhePriQueueInsert(KHE_PRIQUEUE p, void *entry);
+}
+making sure that the entry's key is defined beforehand;
+the index need not be, since it will be set by PriQueue.
+Functions
+@ID @C {
+void *KhePriQueueFindMin(KHE_PRIQUEUE p);
+void *KhePriQueueDeleteMin(KHE_PRIQUEUE p);
+}
+return an entry with minimum key, assuming that @C { p }
+is not empty, and @C { KhePriQueueDeleteMin } removes the
+entry from the queue at the same time.  Function
+@ID @C {
+void KhePriQueueDeleteEntry(KHE_PRIQUEUE p, void *entry);
+}
+deletes @C { entry } from @C { p }; it must lie in @C { p }.
+@PP
+To update the priority of an entry, first change its key
+and then call
+@ID @C {
+void KhePriQueueNotifyKeyChange(KHE_PRIQUEUE p, void *entry);
+}
+to inform @C { p } that it has changed.  This will change
+@C { entry }'s order in the queue, moving it forwards or
+backwards as required.  Finally,
+@ID @C {
+void KhePriQueueTest(FILE *fp);
+}
+tests the module and prints its results onto file @C { fp }.
+@End @SubAppendix
+
+@SubAppendix
+    @Title { XML handling with KML }
+    @Tag { kml }
+@Begin
+@LP
+KML is a C module for reading and writing XML.  It consists of a
+header file called @C { kml.h }, and an implementation file called
+@C { kml.c }.  These are stored and compiled with the KHE module,
+and @C { khe.h } includes @C { kml.h }.  They can also be abstracted
+from it and used separately, although @C { kml.c } does depend on
+the @C { M } memory module (Appendix {@NumberOf modules.m}).
+@PP
+KHE uses KML to read and write XML.  The KHE user encounters KML in
+exactly one place:  when reading an archive, an object of type
+@C { KML_ERROR } is returned if there is a problem.
+@BeginSubSubAppendices
+
+@SubSubAppendix
+    @Title { Representing XML in memory }
+@Begin
+@LP
+Type @C { KML_ELT } represents one node in an XML tree structure,
+including its label, attributes, and children.  The operations
+for querying a @C { KML_ELT } object are
+#This is mainly useful
+#when reading an XML file, but @C { KML_ELT } objects may
+#also be built directly.  This is the subject of this subappendix.
+#Reading is more complex than writing, partly because the file needs
+#to be read into some data structure in memory, and partly because
+#errors may occur, and these need to be detected and reported.  The
+#plan adopted here is the somewhat clumsy one of reading the entire
+#file into a tree structure defined by KML.  Type @C { KML_ELT }
+#represents one element, or node, of this tree structure.  The user
+#can then traverse this structure and use it to guide the construction
+#of a second data structure, the one that is really wanted.
+@ID @C {
+int KmlLineNum(KML_ELT elt);
+int KmlColNum(KML_ELT elt);
+char *KmlLabel(KML_ELT elt);
+KML_ELT KmlParent(KML_ELT elt);
+int KmlAttributeCount(KML_ELT elt);
+char *KmlAttributeName(KML_ELT elt, int index);
+char *KmlAttributeValue(KML_ELT elt, int index);
+int KmlChildCount(KML_ELT elt);
+KML_ELT KmlChild(KML_ELT elt, int index);
+bool KmlContainsChild(KML_ELT elt, char *label, KML_ELT *child_elt);
+char *KmlText(KML_ELT elt);
+}
+@C { KmlLineNum } and @C { KmlColNum } return a line number and column
+number stored in the element, presumably recording its position in some
+input file somewhere.  @C { KmlLabel } returns the label of the element,
+and @C { KmlParent } returns its parent element in the tree structure,
+or @C { NULL } if none.
+@PP
+@C { KmlAttributeCount } returns the number of attributes, and
+@C { KmlAttributeName } and @C { KmlAttributeValue } return the
+@C { index }'th attribute's name and value.  As usual in C, the
+first attribute has index 0.  Negative values for @C { index }
+are also allowed; @C { -1 } means the last attribute, @C { -2 }
+means the second last, and so on.
+@PP
+@C { KmlChildCount } returns the number of children, and
+@C { KmlChild } returns the @C { index }'th child, again counting
+from 0 with negative indices allowed.  @C { KmlContainsChild }
+returns @C { true } if @C { elt } contains a child with the given
+label, setting @C { *child_elt } to the first such child if so.
+@C { KmlText } returns the text which is the body of the element,
+possibly @C { NULL }.
+@PP
+There are operations for constructing @C { KML_ELT } objects
+directly:
+@ID @C {
+KML_ELT KmlMakeElt(int line_num, int col_num, char *label);
+void KmlAddAttribute(KML_ELT elt, char *name, char *value);
+void KmlAddChild(KML_ELT elt, KML_ELT child);
+void KmlDeleteChild(KML_ELT elt, KML_ELT child);
+void KmlAddText(KML_ELT elt, char *text);
+}
+The first creates a new element with the given line number,
+column number, and label; the second adds an attribute;
+the next two add and delete a child; and the last adds text.
+@C { KmlAddText } actually stores a malloced copy of the
+content of the @C { text } parameter.  It may be called
+repeatedly on one @C { elt }, in which case the successive
+texts are concatenated.
+@PP
+When a @C { KML_ELT } object is just an intermediate representation on
+the path from an XML file to the user's data structure, it is no longer
+needed after the user's data structure is built.  The memory occupied
+by it may be returned to the memory allocator for re-use by calling
+@ID @C {
+void KmlFree(KML_ELT elt, bool free_labels, bool free_attribute_names,
+  bool free_attribute_values, bool free_text);
+}
+This frees @C { elt } and its descendants.  The other parameters
+determine whether the strings within these nodes are also freed:
+setting @C { free_labels } to @C { true } causes all label strings
+to be freed, @C { free_attribute_names } causes all attribute name
+strings to be freed, @C { free_attribute_values } causes all
+attribute value strings to be freed, and @C { free_text } causes
+all text to be freed.
+@PP
+The label passed to @C { KmlMakeElt }, and the name and value passed
+to @C { KmlAddAttribute }, are stored without copying in their element.
+If these strings are literal strings, or if they are transferred from
+their @C { KML_ELT } object to the user's data structure without
+copying, then freeing them is not safe.  On the other hand, the
+strings passed to @C { KmlAddText } are always copied into malloced
+memory, not stored directly, and so they are safe to free provided they
+are not transferred without copying into the user's data structure.
+@PP
+The following functions are useful when sorting out what to free:
+@ID @C {
+char *KmlExtractLabel(KML_ELT elt);
+char *KmlExtractAttributeName(KML_ELT elt, int index);
+char *KmlExtractAttributeValue(KML_ELT elt, int index);
+char *KmlExtractText(KML_ELT elt);
+}
+They do what the corresponding operations without the word
+@F { Extract } do, but they also clear that part of the KML object:
+@C { KmlExtractLabel } returns the label but then sets it to
+@C { NULL } within @C { elt }, and so on.  Extracting those
+string parts of the KML tree that are used within the user's
+data structure makes them immune from freeing later.
+@PP
+In the trees returned by @C { KmlRead } and @C { KmlReadString }
+below, all labels, attribute names and values, and text lie in
+malloced memory.  The best policy in that case is to extract
+those strings that are to be kept, and free the rest by setting
+all the @C { bool } parameters of @C { KmlFree } to @C { true }.
+@C { KheArchiveRead } does this, for example.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { Error handling and format checking }
+@Begin
+@LP
+KML does not print any error messages; instead it reports an
+error by returning an object of type @C { KML_ERROR }, containing
+the line number and column number of the point of error, plus a
+message explaining what the problem was:
+@ID @C {
+int KmlErrorLineNum(KML_ERROR ke);
+int KmlErrorColNum(KML_ERROR ke);
+char *KmlErrorString(KML_ERROR ke);
+}
+These objects can form the basis of error messages printed by the
+user.  Most of the error strings actually encountered are generated
+by the Expat parser which KML uses when reading a file.
+@PP
+KML's operations for reading a file check only for well-formedness,
+not for conformance to a legal document type definition, nor for
+high-level semantic constraints.  During the conversion from
+@C { KML_ELT } to the user's own data structure, other errors
+may be uncovered, and it is convenient to be able to report those
+as objects of type @C { KML_ERROR } also.  Accordingly, operation
+@ID @C {
+bool KmlErrorMake(KML_ERROR *ke, int line_num, int col_num,
+  char *fmt, ...);
+}
+is provided.  It creates a new object of type @C { KML_ERROR },
+initializes it with the given line number, column number, and
+formatted text (as for @C { printf }), sets @C { *ke } to the
+object, and returns @C { false }.  This interface is convenient
+for uses such as
+@ID @C {
+if( bad_thing_discovered )
+  return KmlErrorMake(ke, line_num, col_num, "bad %s thing", str);
+}
+which bails out of a function that returns a boolean indicating
+whether all is well.
+@PP
+To check whether a @C { KML_ELT } object conforms to a document
+type definition, call:
+@ID @C {
+bool KmlCheck(KML_ELT elt, char *fmt, KML_ERROR *ke);
+}
+If @C { elt } conforms to the definition expressed by @C { fmt },
+then @C { true } is returned; otherwise, @C { false } is returned
+and @C { *ke } is set to an object recording the nature of the
+error, including a line and column number taken from either @C { elt }
+itself or one of its children, as appropriate.
+@PP
+The format describes the attributes and children of @C { elt };
+it does not specify the label of @C { elt } (which will have
+already been checked by the time @C { elt } is examined), nor
+the children's children (these may be checked by the user
+during a recursive traversal of @C { elt }'s children).
+@PP
+Here is a simple example of a format string:
+@ID @F @Verbatim { "+Reference : #Value" }
+It says that @C { elt } has an optional attribute whose name is
+@F { Reference }, and exactly one child whose label is @F { Value }
+and whose body must contain text denoting an integer (no children).
+In general, the part before the colon specifies attributes, and
+the part after it (if there is a colon at all) specifies children.
+An initial @F { + } means optional, and an initial @F { * } means
+zero or more; neither means exactly one.  After that, an initial
+@F { $ } means text (no children), and an initial @F @Verbatim { # }
+means text representing an integer (again, no children); neither
+means that there may be children.  Here is a longer example:
+@ID @F @Verbatim { "Reference : +#Duration +Time +Resources" }
+The element must have exactly one attribute, with name
+@F { Reference }.  It has up to three children, an optional
+@F { Duration } which must contain an integer, followed by an
+optional @C { Time }, and finally an optional @C { Resources }.
+As mentioned, the inner structure of the children themselves may be
+checked by further calls to @C { KmlCheck }.
+@End @SubSubAppendix
+
+@SubSubAppendix
+    @Title { Reading and writing XML files }
+@Begin
+@LP
+Operations are provided for writing and reading an XML file:
+@ID @C {
+void KmlWrite(KML_ELT elt, KML_FILE kf);
+bool KmlRead(FILE *fp, KML_ELT *res, KML_ERROR *ke);
+bool KmlReadString(char *str, KML_ELT *res, KML_ERROR *ke);
+}
+@C { KmlWrite } writes @C { elt } and its attributes and children
+recursively to @C { kf }, which may be created by calling
+@C { KmlMakeFile } below.  @C { KmlRead } reads file @C { fp },
+which must be open for reading UTF-8 characters.  If the read
+found legal XML, @C { *res } is set to a new @C { KML_ELT }
+tree object representing what was found, and @C { true } is
+returned.  If the read did not find legal XML, @C { *ke } is set
+to an error object recording the file position and nature of
+the first error (reading stops at that point), and @C { false }
+is returned.  @C { KmlReadString } is like @C { KmlRead } except
+that @C { str } is read rather than @C { fp }.
+@PP
+Pointer type @C { KML_FILE }, defined in @C { kml.h }, represents an
+XML file open for writing (never reading).  It holds a file pointer
+and a few attributes describing the state of the write, including a
+current indent, used to produce neatly indented XML.  To create a
+@C { KML_FILE } object, call
+@ID @C {
+KML_FILE KmlMakeFile(FILE *fp, int initial_indent, int indent_step);
+}
+File @C { fp } must be open for writing UTF-8 characters;
+@C { initial_indent } is the initial indent, typically 0,
+and @C { indent_step } is the number of spaces to indent at
+each level, typically 2 or 4.
+@PP
+When reading an XML file using KML it is necessary to first read
+the file into a @C { KML_ELT } object, and then build the user data
+structure that is really wanted, while traversing the @C { KML_ELT }
+object.  The reverse procedure may be used for writing, but it is
+also possible to write directly to a file during the course of a
+traversal of the user's data structure.  To do this, the operations are
+@ID @C {
+void KmlBegin(KML_FILE kf, char *label);
+void KmlAttribute(KML_FILE kf, char *name, char *value);
+void KmlPrintf(KML_FILE kf, char *fmt, ...);
+void KmlEnd(KML_FILE kf, char *label);
+}
+@C { KmlBegin } begins an object with the given label, and @C { KmlEnd }
+ends it.  KML does not check that the labels match, even though they must.
+Immediately after calling @C { KmlBegin }, any number of calls to
+@C { KmlAttribute } are allowed; each adds one attribute, with the given
+name and value, to the object just begun.  After these attributes, one can
+either call @C { KmlPrintf } to add formatted text as the body of the
+object, or, alternatively, any number of nested calls to @C { KmlBegin }
+... @C { KmlEnd } may precede the matching @C { KmlEnd }, to add children.
+@PP
+For convenience, two operations are offered which write an entire
+element in one call:
+@ID @C {
+void KmlEltAttribute(KML_FILE kf, char *label, char *name, char *value);
+void KmlEltPrintf(KML_FILE kf, char *label, char *fmt, ...);
+}
+The first writes an object with the given label, one attribute with
+the given name and value, and nothing else.  The second writes an object
+with the given label and formatted text for its body.  There is also
+@ID @C {
+void KmlEltAttributeEltPrintf(KML_FILE kf, char *label, char *name,
+  char *value, char *label2, char *fmt, ...);
+}
+which writes one element with one attribute, enclosing a second
+element with no attributes and formatted  text for its body.  These
+entire-element operations are simple combinations of the functions
+given above; they differ only in that everything is written onto
+one line, except for newline characters in the formatted text.
+@End @SubSubAppendix
+
+@EndSubSubAppendices
+@End @SubAppendix
+
+@EndSubAppendices
+@End @Appendix

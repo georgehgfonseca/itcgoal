@@ -1,0 +1,16 @@
+gvc khe_constraint.c \
+  khe_assign_resource_constraint.c \
+  khe_assign_time_constraint.c \
+  khe_split_events_constraint.c \
+  khe_distribute_split_events_constraint.c \
+  khe_prefer_resources_constraint.c \
+  khe_prefer_times_constraint.c \
+  khe_avoid_split_assignments_constraint.c \
+  khe_spread_events_constraint.c \
+  khe_link_events_constraint.c \
+  khe_avoid_clashes_constraint.c \
+  khe_avoid_unavailable_times_constraint.c \
+  khe_limit_idle_times_constraint.c \
+  khe_cluster_busy_times_constraint.c \
+  khe_limit_busy_times_constraint.c \
+  khe_limit_workload_constraint.c

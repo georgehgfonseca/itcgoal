@@ -1,0 +1,208 @@
+@Chapter
+    @Title { Archives and Solution Groups }
+    @Tag { archives }
+@Begin
+@LP
+This chapter describes the @C { KHE_ARCHIVE } and @C { KHE_SOLN_GROUP }
+data types, representing archives and solution groups as in the XML
+format.  Their use is optional, since instances are not required to lie
+in archives, and solutions are not required to lie in solution groups.
+@BeginSections
+
+@Section
+   @Title { Archives }
+@Begin
+@LP
+An archive is defined in the XML format to be a collection
+of instances together with groups of solutions to those
+instances.  There may be any number of instances and
+solution groups.  To create a new, empty archive, call
+@ID @C {
+KHE_ARCHIVE KheArchiveMake(char *id, KHE_ARCHIVE_METADATA md);
+}
+Both parameters are optional (may be @C { NULL }); @C { id } is
+an identifier for the archive, and @C { md } is metadata, which
+can be created by @C { KheArchiveMetaDataMake } below.  Functions
+@ID @C {
+char *KheArchiveId(KHE_ARCHIVE archive);
+KHE_ARCHIVE_METADATA KheArchiveMetaData(KHE_ARCHIVE archive);
+}
+return these two attributes.  To set and retrieve the back pointer
+(Section {@NumberOf intro.common}), call
+@ID @C {
+void KheArchiveSetBack(KHE_ARCHIVE archive, void *back);
+void *KheArchiveBack(KHE_ARCHIVE archive);
+}
+Archive metadata may be created by calling
+@ID @C {
+KHE_ARCHIVE_METADATA KheArchiveMetaDataMake(char *name,
+  char *contributor, char *date, char *description, char *remarks);
+}
+where @C { remarks }, being optional, may be @C { NULL }.  The
+attributes may be retrieved by calling
+@ID @C {
+char *KheArchiveMetaDataName(KHE_ARCHIVE_METADATA md);
+char *KheArchiveMetaDataContributor(KHE_ARCHIVE_METADATA md);
+char *KheArchiveMetaDataDate(KHE_ARCHIVE_METADATA md);
+char *KheArchiveMetaDataDescription(KHE_ARCHIVE_METADATA md);
+char *KheArchiveMetaDataRemarks(KHE_ARCHIVE_METADATA md);
+}
+Initially an archive contains no instances and no solution groups.
+These are added automatically as they are created.  To visit the
+instances of an archive, call
+@ID @C {
+int KheArchiveInstanceCount(KHE_ARCHIVE archive);
+KHE_INSTANCE KheArchiveInstance(KHE_ARCHIVE archive, int i);
+}
+The first returns the number of instances in @C { archive },
+and the second returns the @C { i }'th of those instances,
+counting from 0 as usual in C.  There is also
+@ID @C {
+bool KheArchiveRetrieveInstance(KHE_ARCHIVE archive, char *id,
+  KHE_INSTANCE *ins);
+}
+If @C { archive } contains an instance with the given @C { id },
+this function sets @C { ins } to that instance and returns
+@C { true }; otherwise it leaves @C { *ins } untouched and
+returns @C { false }.
+@PP
+To visit the solution groups of an archive, or retrieve a solution
+group by @C { id }, call
+@ID @C {
+int KheArchiveSolnGroupCount(KHE_ARCHIVE archive);
+KHE_SOLN_GROUP KheArchiveSolnGroup(KHE_ARCHIVE archive, int i);
+bool KheArchiveRetrieveSolnGroup(KHE_ARCHIVE archive, char *id,
+  KHE_SOLN_GROUP *soln_group);
+}
+in the same way as for instances.
+@End @Section
+
+@Section
+    @Title { Solution groups }
+    @Tag { archives.soln_groups }
+@Begin
+@LP
+A solution group is defined in the XML format to be a set of
+solutions to instances of the enclosing archive.  To create
+a solution group, call
+@ID @C {
+bool KheSolnGroupMake(KHE_ARCHIVE archive, char *id,
+  KHE_SOLN_GROUP_METADATA md, KHE_SOLN_GROUP *soln_group);
+}
+Parameter @C { archive } is compulsory.  The solution group will be
+added to the archive.  Parameters @C { id } and @C { md } are the Id
+and MetaData attributes from the XML file; both are optional, with
+@C { NULL } meaning absent.  If the operation is successful, then
+@C { true } is returned with @C { *soln_group } set to the new
+solution group; if it is unsuccessful (which can only be because
+@C { id } is already the Id of a solution group of @C { archive }),
+then @C { false } is returned with @C { *soln_group } set to @C { NULL }.
+@PP
+To set and retrieve the back pointer (Section {@NumberOf intro.common})
+of a solution group, call
+@ID @C {
+void KheSolnGroupSetBack(KHE_SOLN_GROUP soln_group, void *back);
+void *KheSolnGroupBack(KHE_SOLN_GROUP soln_group);
+}
+as usual.  To retrieve the other attributes, call
+@ID @C {
+KHE_ARCHIVE KheSolnGroupArchive(KHE_SOLN_GROUP soln_group);
+char *KheSolnGroupId(KHE_SOLN_GROUP soln_group);
+KHE_SOLN_GROUP_METADATA KheSolnGroupMetaData(KHE_SOLN_GROUP soln_group);
+}
+Solution group metadata may be created by calling
+@ID @C {
+KHE_SOLN_GROUP_METADATA KheSolnGroupMetaDataMake(char *contributor,
+  char *date, char *description, char *remarks);
+}
+where @C { remarks }, being optional, may be @C { NULL }.  The
+attributes may be retrieved by calling
+@ID @C {
+char *KheSolnGroupMetaDataContributor(KHE_SOLN_GROUP_METADATA md);
+char *KheSolnGroupMetaDataDate(KHE_SOLN_GROUP_METADATA md);
+char *KheSolnGroupMetaDataDescription(KHE_SOLN_GROUP_METADATA md);
+char *KheSolnGroupMetaDataRemarks(KHE_SOLN_GROUP_METADATA md);
+}
+Initially a solution group contains no solutions.  These are added
+automatically as they are created, or explicitly by calling
+@ID @C {
+void KheSolnGroupAddSoln(KHE_SOLN_GROUP soln_group, KHE_SOLN soln);
+}
+A solution can also be deleted from a solution group, by calling
+@ID @C {
+void KheSolnGroupDeleteSoln(KHE_SOLN_GROUP soln_group, KHE_SOLN soln);
+}
+To visit the solutions of a solution group, call
+@ID @C {
+int KheSolnGroupSolnCount(KHE_SOLN_GROUP soln_group);
+KHE_SOLN KheSolnGroupSoln(KHE_SOLN_GROUP soln_group, int i);
+}
+as usual.  Solutions have no Id attributes, so there is
+no @C { KheSolnGroupRetrieveSoln } function.
+@End @Section
+
+@Section
+   @Title { Reading and writing archives }
+   @Tag { archives.read }
+@Begin
+@LP
+KHE offers functions for reading and writing archives as XML files
+in a standard format @Cite { $post2008 }.  To create an archive by
+reading an XML file or string, call
+@ID @Scale @C {
+bool KheArchiveRead(FILE *fp, KHE_ARCHIVE *archive,
+  bool infer_resource_partitions, KML_ERROR *ke);
+bool KheArchiveReadFromString(char *str, KHE_ARCHIVE *archive,
+  bool infer_resource_partitions, KML_ERROR *ke);
+}
+These functions discard any reports they find in the archive, without
+checking them.  File @C { fp } must be open for reading UTF-8
+characters, and it remains open after the call returns.  If the
+file contains a legal archive, then @C { KheArchiveRead } sets
+@C { *archive } to that archive and @C { *ke } to @C { NULL } and
+returns @C { true }.  Parameter @C { infer_resource_partitions }
+is passed on to the calls to @C { KheInstanceMakeEnd }
+(Section {@NumberOf instances_instances}).  If there was a problem
+reading the file, then @C { *archive } is set to @C { NULL },
+@C { *ke } is set to an error object, and @C { false } is returned.
+@PP
+Type @C { KML_ERROR } is from the KML module packaged with KHE.  A
+full description of this module appears in Appendix {@NumberOf kml}.
+Given an object of type @C { KML_ERROR }, operations
+@ID @C {
+int KmlErrorLineNum(KML_ERROR ke);
+int KmlErrorColNum(KML_ERROR ke);
+char *KmlErrorString(KML_ERROR ke);
+}
+return the line number, the column number, and a string description
+of the error.
+@PP
+@C { KheArchiveRead } builds the archive object by calling only the
+functions described in this guide; there is nothing special about the
+archive it makes.  It builds complete representations of the solutions
+it reads (Section {@NumberOf solutions.complete}).
+@PP
+To write an archive to a file, call
+@ID @C {
+bool KheArchiveWrite(KHE_ARCHIVE archive, bool with_reports, FILE *fp);
+}
+If @C { with_reports } is @C { true }, each solution written to the
+file contains a @C { Report } section evaluating the solution.  The
+file must be open for writing and remains open after the call returns.
+Ids, names, and meta-data are optional in KHE but compulsory when
+writing XML.  This function will return @C { false } and write an
+incomplete file if any Ids, names, or meta-data are missing.  It
+will always return @C { true } when @C { archive } was produced by
+a successful call to @C { KheArchiveRead }, since then all the
+necessary elements must be present.
+@PP
+When writing solutions, @C { KheArchiveWrite } writes as little as
+possible.  It does not write an unassigned or preassigned task.
+It does not write a meet if its duration equals the duration of
+the corresponding event, its time is unassigned or preassigned,
+and its tasks are not written according to the rule just given
+(see also Section {@NumberOf solutions.complete}).
+@End @Section
+
+@EndSections
+@End @Chapter

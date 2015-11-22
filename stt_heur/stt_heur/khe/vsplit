@@ -1,0 +1,8 @@
+gvc khe_split_link_and_layer.h khe_split_link_and_layer.c		\
+    khe_split_forest.c khe_split_class.c khe_split_layer.c		\
+    khe_split_assigner.c
+
+# khe_split_task.c khe_pack_split_task.c khe_preassigned_split_task.c	\
+# khe_assigned_split_task.c khe_link_split_task.c			\
+# khe_split_split_task.c khe_distribute_split_task.c			\
+# khe_spread_split_task.c khe_domain_split_task.c

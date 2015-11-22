@@ -1,0 +1,31 @@
+@SysInclude { cprint }
+@SysInclude { math }
+@SysInclude { tbl }
+@SysInclude { diag }
+
+macro @C { {0.9 1.0} @Scale @OneRow @CP }
+
+@Include { mybook }
+
+@Database @Reference { "/home/jeff/misc/refs/allrefs" }
+@Book
+    @Title { The KHE High School Timetabling Engine }
+    @Author { Jeffrey H. Kingston
+@I { jeff@it.usyd.edu.au } }
+    @Edition { Version of 17 January 2012 }
+    @InitialSpace { troff }
+//
+@Include { intro }
+@Include { archives }
+@Include { instances }
+@Include { solutions }
+@Include { extras }
+@Include { monitoring }
+@Include { matchings }
+@Include { grouping }
+@Include { layer_tree_solvers }
+@Include { time_solvers }
+@Include { resource_solvers }
+@Include { general_solvers }
+@Include { ejection }
+@Include { modules }
